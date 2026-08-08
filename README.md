@@ -1,43 +1,46 @@
-# Astro Starter Kit: Minimal
+# fwm-website
 
-```sh
-npm create astro@latest -- --template minimal
+Official website and interactive web sandbox for [fwm](https://github.com/iluaii/fwm).
+
+Live Demo: https://fwm-website.vercel.app
+
+[![Astro](https://img.shields.io/badge/Astro-v7.1-0d1117?style=square&logo=astro&logoColor=FF5D01)](https://astro.build)
+[![React](https://img.shields.io/badge/React-v19.0-0d1117?style=square&logo=react&logoColor=61DAFB)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind-v4.0-0d1117?style=square&logo=tailwindcss&logoColor=06B6D4)](https://tailwindcss.com)
+[![GSAP](https://img.shields.io/badge/GSAP-v3.15-0d1117?style=square&logo=greensock&logoColor=88CE02)](https://greensock.com)
+[![z-proximity-engine](https://img.shields.io/badge/z--proximity--engine-v2.5-0d1117?style=square&logoColor=d0a82c)](https://github.com/YoussefZidan-1/z-proximity-engine)
+
+---
+
+## About
+
+fwm-website is the official web showcase and documentation portal for [fwm](https://github.com/iluaii/fwm) (Physics Window Manager for Wayland).
+
+It features a 60fps in-browser 2D physics sandbox that mirrors fwm's C algorithms (Hooke's Law spring lattice, Box2D 3.x rigid-body collisions, and procedural Web Audio knocks) alongside zero-drift documentation rendered directly from the compositor repository.
+
+## Tech Stack
+
+* [Astro](https://astro.build) - Static site generator and content collections pipeline.
+* [React](https://react.dev) - Interactive physics sandbox and UI components.
+* [Tailwind CSS](https://tailwindcss.com) - Utility-first styling with custom dark theme.
+* [GSAP](https://greensock.com) & [Lenis](https://lenis.darkroom.engineering) - Animations and ticker-synchronized smooth scrolling.
+* [z-proximity-engine](https://github.com/YoussefZidan-1/z-proximity-engine) - Proximity micro-interaction library created by YoussefZidan-1.
+
+## Local Development
+
+```bash
+# Clone recursively to fetch fwm-repo docs submodule
+git clone --recursive https://github.com/iluaii/fwm-website.git
+cd fwm-website
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
 ```
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Maintainers
 
-## 🚀 Project Structure
-
-Inside of your Astro project, you'll see the following folders and files:
-
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
-
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
-
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-Any static assets, like images, can be placed in the `public/` directory.
-
-## 🧞 Commands
-
-All commands are run from the root of the project, from a terminal:
-
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
-
-## 👀 Want to learn more?
-
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+* [iluaii](https://github.com/iluaii/) - Author of fwm compositor
+* [YoussefZidan-1](https://github.com/YoussefZidan-1) - Maintainer of fwm-website
