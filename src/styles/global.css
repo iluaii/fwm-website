@@ -6,6 +6,13 @@
   --font-body: 'Lora', serif;
 }
 
+@layer base {
+  html {
+    /* Prevents layout shift during font swaps */
+    font-size-adjust: from-font;
+  }
+}
+
 /* Lenis Smooth Scroll Rules */
 html.lenis, html.lenis body {
   height: auto;
@@ -27,16 +34,18 @@ body {
   font-family: var(--font-body);
 }
 
+/* Ensure headings maintain consistent height regardless of font state */
 .font-display {
-  font-family: var(--font-display);
-}
-
-.font-mono {
-  font-family: var(--font-mono);
+  font-family: var(--font-display), 'Playfair Display', Georgia, serif;
+  font-optical-sizing: auto;
 }
 
 .font-body {
-  font-family: var(--font-body);
+  font-family: var(--font-body), 'Lora', Georgia, serif;
+}
+
+.font-mono {
+  font-family: var(--font-mono), 'JetBrains Mono', monospace;
 }
 
 /* --- Preloader Protection Rules --- */
