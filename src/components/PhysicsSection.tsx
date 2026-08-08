@@ -152,6 +152,23 @@ export const PhysicsSection: React.FC = () => {
   const lastTelemetryTextRef = useRef<string>('');
   const lastSoundTimeRef = useRef<number>(0);
   
+  const deskRectRef = useRef<DOMRect | null>(null);
+  
+  useEffect(() => {
+    const updateRect = () => {
+      if (desktopRef.current) {
+        deskRectRef.current = desktopRef.current.getBoundingClientRect();
+      }
+    };
+    updateRect();
+    window.addEventListener('resize', updateRect);
+    window.addEventListener('scroll', updateRect, { passive: true });
+    return () => {
+      window.removeEventListener('resize', updateRect);
+      window.removeEventListener('scroll', updateRect);
+    };
+  }, []);
+  
   const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode });
   useEffect(() => {
     optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode };
@@ -949,9 +966,12 @@ export const PhysicsSection: React.FC = () => {
 
     const handlePointerMove = (e: PointerEvent) => {
       if (!desktopRef.current) return;
-      const deskRect = desktopRef.current.getBoundingClientRect();
-      const curLx = e.clientX - deskRect.left;
-      const curLy = e.clientY - deskRect.top;
+      if (!deskRectRef.current) {
+         deskRectRef.current = desktopRef.current.getBoundingClientRect();
+       }
+       const deskRect = deskRectRef.current;
+       const curLx = e.clientX - deskRect.left;
+       const curLy = e.clientY - deskRect.top;
 
       if (!activeDragWin) {
         let hovered = false;
@@ -1236,13 +1256,20 @@ export const PhysicsSection: React.FC = () => {
                     <button
                       key={i}
                       onClick={() => setActiveDesktop(i)}
-                      className={`w-2 h-2 rounded-none transition-all cursor-pointer flex items-center justify-center text-[7px] font-mono font-bold ${
-                        activeDesktop === i
-                          ? 'bg-[#e8ecf0] text-slate-950 scale-110'
-                          : 'bg-slate-700 text-transparent hover:bg-slate-500'
+                      aria-label={`Switch to Desktop ${i + 1}`}
+                      className={`w-5 h-5 cursor-pointer flex items-center justify-center transition-all ${
+                        activeDesktop === i ? 'scale-110' : 'opacity-70 hover:opacity-100'
                       }`}
                     >
-                      {activeDesktop === i ? '•' : ''}
+                      <span
+                        className={`w-2 h-2 transition-all flex items-center justify-center text-[7px] font-mono font-bold ${
+                          activeDesktop === i
+                            ? 'bg-[#e8ecf0] text-slate-950 shadow-[0_0_8px_#ffffff]'
+                            : 'bg-slate-700 text-transparent'
+                        }`}
+                      >
+                        {activeDesktop === i ? '•' : ''}
+                      </span>
                     </button>
                   ))}
                 </div>
