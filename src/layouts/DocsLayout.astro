@@ -128,6 +128,13 @@ const docNav = [
       const href = a.getAttribute('href');
       if (!href) return;
 
+      // Prevent HTTPS security errors by disabling local filesystem (file://) links
+      if (href.startsWith('file://')) {
+        a.removeAttribute('href');
+        a.classList.add('pointer-events-none', 'no-underline');
+        return;
+      }
+
       const isRelative =
         !href.startsWith('http://') &&
         !href.startsWith('https://') &&
