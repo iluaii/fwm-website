@@ -1,6 +1,6 @@
 import type { WindowBody } from '../../types/physics';
 
-// Render Sharp Flat Window Texture (NO ROUNDED CORNERS, CONSISTENT FASTFETCH)
+// Render Sharp Flat Window Texture (NO ROUNDED CORNERS, CONSISTENT FASTFETCH/ASCII CAT)
 export function getWindowTextureCanvas(
   win: WindowBody,
   windowTextureMap: { [key: number]: HTMLCanvasElement },
@@ -18,7 +18,7 @@ export function getWindowTextureCanvas(
   if (texCtx) {
     texCtx.clearRect(0, 0, win.w, win.h);
 
-    // Window Background - SHARP RECTANGLE (NO ROUNDED CORNERS)
+    // Window Background - SHARP RECTANGLE
     texCtx.fillStyle = '#0c0e14';
     texCtx.fillRect(0, 0, win.w, win.h);
 
@@ -57,19 +57,14 @@ export function getWindowTextureCanvas(
     texCtx.arc(win.w - 12, 15, 4, 0, Math.PI * 2);
     texCtx.fill();
 
-    // CONSISTENT FASTFETCH CONTENT
-    texCtx.font = '10px monospace';
+    // CUTE ASCII CAT LOGO (Pink / Rose Theme)
+    texCtx.font = 'bold 11px monospace';
+    texCtx.fillStyle = '#f7768e';
+    texCtx.fillText('   /\\_/\\   ', 10, 68);
+    texCtx.fillText('  (=^.^=)  ', 10, 82);
+    texCtx.fillText('   >   <   ', 10, 90);
 
-    // Fastfetch Logo (Cyan/Blue)
-    texCtx.fillStyle = '#7dcfff';
-    texCtx.fillText('  \\  /\\  /', 10, 46);
-    texCtx.fillText('   \\/  \\/', 10, 58);
-    texCtx.fillText('  |  ||  |', 10, 70);
-    texCtx.fillText('  |  ||  |', 10, 82);
-    texCtx.fillText('   \\/\\/  ', 10, 94);
-    texCtx.fillText('    \\/   ', 10, 106);
-
-    // Fastfetch System Details
+    // System Details
     const startX = 100;
     texCtx.fillStyle = '#bb9af7';
     texCtx.fillText('ilu@fwm-host', startX, 46);
