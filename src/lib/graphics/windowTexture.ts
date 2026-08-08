@@ -9,11 +9,28 @@ export function getWindowTextureCanvas(
   if (!windowTextureMap[win.id]) {
     windowTextureMap[win.id] = document.createElement('canvas');
   }
-  const texCanvas = windowTextureMap[win.id];
+  
+  // Cast with local caching properties to prevent unnecessary redraws
+  const texCanvas = windowTextureMap[win.id] as HTMLCanvasElement & { _lastW?: number, _lastH?: number, _lastFocus?: boolean };
+  
   if (texCanvas.width !== win.w || texCanvas.height !== win.h) {
     texCanvas.width = win.w;
     texCanvas.height = win.h;
   }
+
+  // Cache Hit: If size and focus state haven't changed, skip the heavy canvas redraw!
+  if (
+    texCanvas._lastW === win.w &&
+    texCanvas._lastH === win.h &&
+    texCanvas._lastFocus === isFocused
+  ) {
+    return texCanvas;
+  }
+
+  texCanvas._lastW = win.w;
+  texCanvas._lastH = win.h;
+  texCanvas._lastFocus = isFocused;
+
   const texCtx = texCanvas.getContext('2d');
   if (texCtx) {
     texCtx.clearRect(0, 0, win.w, win.h);

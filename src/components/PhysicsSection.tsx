@@ -17,6 +17,10 @@ if (typeof window !== 'undefined') {
 }
 
 // --- SAT OBB RIGID BODY COLLISION HELPERS ---
+// Pre-allocated object pools to prevent GC stuttering
+const _cPool = [[{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}], [{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}]];
+let _cIdx = 0;
+
 function getBoxCorners(win: WindowBody) {
   const cx = win.x + win.w / 2;
   const cy = win.y + win.h / 2;
@@ -26,21 +30,31 @@ function getBoxCorners(win: WindowBody) {
   const cos = Math.cos(win.angle || 0);
   const sin = Math.sin(win.angle || 0);
 
-  return [
-    { x: cx + (-hw * cos - -hh * sin), y: cy + (-hw * sin + -hh * cos) },
-    { x: cx + ( hw * cos - -hh * sin), y: cy + ( hw * sin + -hh * cos) },
-    { x: cx + ( hw * cos -  hh * sin), y: cy + ( hw * sin +  hh * cos) },
-    { x: cx + (-hw * cos -  hh * sin), y: cy + (-hw * sin +  hh * cos) },
-  ];
+  const out = _cPool[_cIdx];
+  _cIdx = (_cIdx + 1) % 2;
+
+  out[0].x = cx + (-hw * cos - -hh * sin); out[0].y = cy + (-hw * sin + -hh * cos);
+  out[1].x = cx + ( hw * cos - -hh * sin); out[1].y = cy + ( hw * sin + -hh * cos);
+  out[2].x = cx + ( hw * cos -  hh * sin); out[2].y = cy + ( hw * sin +  hh * cos);
+  out[3].x = cx + (-hw * cos -  hh * sin); out[3].y = cy + (-hw * sin +  hh * cos);
+  
+  return out;
 }
+
+const _aPool = [[{x:0,y:0},{x:0,y:0}], [{x:0,y:0},{x:0,y:0}]];
+let _aIdx = 0;
 
 function getBoxAxes(win: WindowBody) {
   const cos = Math.cos(win.angle || 0);
   const sin = Math.sin(win.angle || 0);
-  return [
-    { x: cos, y: sin },
-    { x: -sin, y: cos },
-  ];
+  
+  const out = _aPool[_aIdx];
+  _aIdx = (_aIdx + 1) % 2;
+  
+  out[0].x = cos; out[0].y = sin;
+  out[1].x = -sin; out[1].y = cos;
+  
+  return out;
 }
 
 function projectBox(corners: { x: number; y: number }[], axis: { x: number; y: number }) {
@@ -54,13 +68,17 @@ function projectBox(corners: { x: number; y: number }[], axis: { x: number; y: n
   return { min, max };
 }
 
+const _combinedAxes = [{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}];
+
 function testOBBCollision(w1: WindowBody, w2: WindowBody) {
   const corners1 = getBoxCorners(w1);
   const corners2 = getBoxCorners(w2);
 
   const axes1 = getBoxAxes(w1);
   const axes2 = getBoxAxes(w2);
-  const axes = [...axes1, ...axes2];
+  
+  const axes = _combinedAxes;
+  axes[0] = axes1[0]; axes[1] = axes1[1]; axes[2] = axes2[0]; axes[3] = axes2[1];
 
   let minOverlap = Infinity;
   let mtvAxis = { x: 0, y: 0 };
@@ -155,6 +173,8 @@ export const PhysicsSection: React.FC = () => {
   const focusedTitleRef = useRef<string>('fwm-terminal');
   const lastTelemetryTextRef = useRef<string>('');
   const lastSoundTimeRef = useRef<number>(0);
+  const lastTelemetryDataRef = useRef({ angle: -1, speed: -1, mass: -1, title: '' });
+  const sortedWindowsRef = useRef<WindowBody[]>([]);
   
   const deskRectRef = useRef<DOMRect | null>(null);
   
@@ -166,10 +186,9 @@ export const PhysicsSection: React.FC = () => {
     };
     updateRect();
     window.addEventListener('resize', updateRect);
-    window.addEventListener('scroll', updateRect, { passive: true });
+    // REMOVED scroll listener to fix Layout Thrashing & Scroll Jank
     return () => {
       window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', updateRect);
     };
   }, []);
   
@@ -609,7 +628,10 @@ export const PhysicsSection: React.FC = () => {
       // ==========================================
       updateBspLayout(winList, activeDesktop, opts.bspTilingOn, boundsW, boundsH, dt);
 
-      const sortedWindows = [...winList].sort((a, b) => a.zIndex - b.zIndex);
+      const sortedWindows = sortedWindowsRef.current;
+      sortedWindows.length = 0;
+      for (let i = 0; i < winList.length; i++) sortedWindows.push(winList[i]);
+      sortedWindows.sort((a, b) => a.zIndex - b.zIndex);
     
       sortedWindows.forEach((win) => {
         if (win.activeDesktop !== activeDesktop) return;
@@ -855,11 +877,19 @@ export const PhysicsSection: React.FC = () => {
           }
           const speed = Math.round(Math.hypot(win.vx, win.vy));
           const angle = Math.round(((win.angle * 180) / Math.PI) % 360);
-          const telemetryText = `${win.title} • ${angle}° • ${speed}px/s • m ${win.mass}`;
-    
-          if (telemetryRef.current && lastTelemetryTextRef.current !== telemetryText) {
-            telemetryRef.current.textContent = telemetryText;
-            lastTelemetryTextRef.current = telemetryText;
+          
+          const td = lastTelemetryDataRef.current;
+          if (td.angle !== angle || td.speed !== speed || td.mass !== win.mass || td.title !== win.title) {
+            td.angle = angle;
+            td.speed = speed;
+            td.mass = win.mass;
+            td.title = win.title;
+            
+            const telemetryText = `${win.title} • ${angle}° • ${speed}px/s • m ${win.mass}`;
+            if (telemetryRef.current && lastTelemetryTextRef.current !== telemetryText) {
+              telemetryRef.current.textContent = telemetryText;
+              lastTelemetryTextRef.current = telemetryText;
+            }
           }
         }
     
@@ -983,12 +1013,12 @@ export const PhysicsSection: React.FC = () => {
 
     const handlePointerMove = (e: PointerEvent) => {
       if (!desktopRef.current) return;
-      if (!deskRectRef.current) {
-         deskRectRef.current = desktopRef.current.getBoundingClientRect();
-       }
-       const deskRect = deskRectRef.current;
-       const curLx = e.clientX - deskRect.left;
-       const curLy = e.clientY - deskRect.top;
+      
+      // Calculate fresh rect to guarantee precision during interactions
+      // without relying on scroll-bound layout thrashing
+      const deskRect = desktopRef.current.getBoundingClientRect();
+      const curLx = e.clientX - deskRect.left;
+      const curLy = e.clientY - deskRect.top;
 
       if (!activeDragWin) {
         let hovered = false;
