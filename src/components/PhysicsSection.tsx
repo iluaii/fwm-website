@@ -8,6 +8,7 @@ import { playKnockSound } from '../lib/audio/knockSound';
 import { drawTriangle } from '../lib/graphics/drawTriangle';
 import { getLocalWindowCoords } from '../lib/physics/geometry';
 import { getWindowTextureCanvas } from '../lib/graphics/windowTexture';
+import { updateBspLayout } from '../lib/physics/bspUpdater';
 import type { WindowBody } from '../types/physics';
 
 if (typeof window !== 'undefined') {
@@ -144,6 +145,7 @@ export const PhysicsSection: React.FC = () => {
   const [rotationOn, setRotationOn] = useState(true);
   const [wobbleOn, setWobbleOn] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
+  const [bspTilingOn, setBspTilingOn] = useState(false);
   const [massMode, setMassMode] = useState<'size' | 'ram'>('size');
   const [showModes, setShowModes] = useState(false);
 
@@ -169,10 +171,10 @@ export const PhysicsSection: React.FC = () => {
     };
   }, []);
   
-  const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode });
+  const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn });
   useEffect(() => {
-    optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode };
-  }, [gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode]);
+    optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn };
+  }, [gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn]);
 
   const windowsRef = useRef<WindowBody[]>([]);
 
@@ -446,6 +448,7 @@ export const PhysicsSection: React.FC = () => {
           const w1 = winList[i];
           const w2 = winList[j];
           if (w1.activeDesktop !== activeDesktop || w2.activeDesktop !== activeDesktop) continue;
+          if (opts.bspTilingOn) continue; // Skip collisions in BSP mode
     
           const col = testOBBCollision(w1, w2);
           if (!col) continue;
@@ -599,6 +602,8 @@ export const PhysicsSection: React.FC = () => {
       // ==========================================
       // 2. WINDOW STEP, WALL BOUNDS & RENDERING
       // ==========================================
+      updateBspLayout(winList, activeDesktop, opts.bspTilingOn, boundsW, boundsH, dt);
+
       const sortedWindows = [...winList].sort((a, b) => a.zIndex - b.zIndex);
     
       sortedWindows.forEach((win) => {
@@ -625,7 +630,7 @@ export const PhysicsSection: React.FC = () => {
           win.vx = (dragTargetX - win.x) / dt;
           win.vy = (dragTargetY - win.y) / dt;
     
-          if (opts.rotationOn) {
+          if (opts.rotationOn && !opts.bspTilingOn) {
             if (!pivotHave) {
               pivotX = px;
               pivotY = py;
@@ -684,136 +689,138 @@ export const PhysicsSection: React.FC = () => {
             win.y = dragTargetY;
           }
         } else {
-          win.vy += currentGravity * dt;
-    
-          const airDamping = currentGravity > 0 ? 0.985 : 0.995;
-          const damp = Math.pow(airDamping, dt * 60);
-          win.vx *= damp;
-          win.vy *= damp;
-    
-          win.x += win.vx * dt;
-          win.y += win.vy * dt;
-    
-          if (opts.rotationOn) {
-            win.angle += win.angvel * dt;
-            win.angvel *= Math.exp(-0.35 * dt);
-            win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
-          } else {
-            win.angle = 0;
-            win.angvel = 0;
-          }
-    
-          const cosA = Math.cos(win.angle);
-          const sinA = Math.sin(win.angle);
-          const extX = (win.w / 2) * Math.abs(cosA) + (win.h / 2) * Math.abs(sinA);
-          const extY = (win.w / 2) * Math.abs(sinA) + (win.h / 2) * Math.abs(cosA);
-    
-          let cx = win.x + win.w / 2;
-          let cy = win.y + win.h / 2;
-    
-          let hit = false;
-          let hitSpeed = 0;
-    
-          const wallRestitution = currentGravity > 0 ? 0.3 : 0.8;
-    
-          if (cx - extX < 0) {
-            cx = extX;
-            win.x = cx - win.w / 2;
-            if (win.vx < 0) {
-              win.vx = Math.abs(win.vx) * wallRestitution;
-              if (opts.rotationOn) {
-                win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8));
-              }
-              hit = true;
-              hitSpeed = Math.abs(win.vx);
-            }
-          }
-    
-          if (cx + extX > boundsW) {
-            cx = boundsW - extX;
-            win.x = cx - win.w / 2;
-            if (win.vx > 0) {
-              win.vx = -Math.abs(win.vx) * wallRestitution;
-              if (opts.rotationOn) {
-                win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8));
-              }
-              hit = true;
-              hitSpeed = Math.abs(win.vx);
-            }
-          }
-    
-          if (cy - extY < 0) {
-            cy = extY;
-            win.y = cy - win.h / 2;
-            if (win.vy < 0) {
-              win.vy = Math.abs(win.vy) * wallRestitution;
-              hit = true;
-              hitSpeed = Math.abs(win.vy);
-            }
-          }
-    
-          if (cy + extY > boundsH) {
-            cy = boundsH - extY;
-            win.y = cy - win.h / 2;
-    
-            if (win.vy > 0) {
-              win.vy = -Math.abs(win.vy) * wallRestitution;
-              win.vx *= 0.85;
-              hit = true;
-              hitSpeed = Math.abs(win.vy);
-            }
-    
+          if (!opts.bspTilingOn) {
+            win.vy += currentGravity * dt;
+      
+            const airDamping = currentGravity > 0 ? 0.985 : 0.995;
+            const damp = Math.pow(airDamping, dt * 60);
+            win.vx *= damp;
+            win.vy *= damp;
+      
+            win.x += win.vx * dt;
+            win.y += win.vy * dt;
+      
             if (opts.rotationOn) {
-              let normAngle = win.angle % (Math.PI * 2);
-              if (normAngle > Math.PI) normAngle -= Math.PI * 2;
-              if (normAngle < -Math.PI) normAngle += Math.PI * 2;
-    
-              const targets = [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
-              let nearestTarget = 0;
-              let minDiff = Infinity;
-              for (const target of targets) {
-                const diff = Math.abs(normAngle - target);
-                if (diff < minDiff) {
-                  minDiff = diff;
-                  nearestTarget = target;
+              win.angle += win.angvel * dt;
+              win.angvel *= Math.exp(-0.35 * dt);
+              win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
+            } else {
+              win.angle = 0;
+              win.angvel = 0;
+            }
+      
+            const cosA = Math.cos(win.angle);
+            const sinA = Math.sin(win.angle);
+            const extX = (win.w / 2) * Math.abs(cosA) + (win.h / 2) * Math.abs(sinA);
+            const extY = (win.w / 2) * Math.abs(sinA) + (win.h / 2) * Math.abs(cosA);
+      
+            let cx = win.x + win.w / 2;
+            let cy = win.y + win.h / 2;
+      
+            let hit = false;
+            let hitSpeed = 0;
+      
+            const wallRestitution = currentGravity > 0 ? 0.3 : 0.8;
+      
+            if (cx - extX < 0) {
+              cx = extX;
+              win.x = cx - win.w / 2;
+              if (win.vx < 0) {
+                win.vx = Math.abs(win.vx) * wallRestitution;
+                if (opts.rotationOn) {
+                  win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8));
+                }
+                hit = true;
+                hitSpeed = Math.abs(win.vx);
+              }
+            }
+      
+            if (cx + extX > boundsW) {
+              cx = boundsW - extX;
+              win.x = cx - win.w / 2;
+              if (win.vx > 0) {
+                win.vx = -Math.abs(win.vx) * wallRestitution;
+                if (opts.rotationOn) {
+                  win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8));
+                }
+                hit = true;
+                hitSpeed = Math.abs(win.vx);
+              }
+            }
+      
+            if (cy - extY < 0) {
+              cy = extY;
+              win.y = cy - win.h / 2;
+              if (win.vy < 0) {
+                win.vy = Math.abs(win.vy) * wallRestitution;
+                hit = true;
+                hitSpeed = Math.abs(win.vy);
+              }
+            }
+      
+            if (cy + extY > boundsH) {
+              cy = boundsH - extY;
+              win.y = cy - win.h / 2;
+      
+              if (win.vy > 0) {
+                win.vy = -Math.abs(win.vy) * wallRestitution;
+                win.vx *= 0.85;
+                hit = true;
+                hitSpeed = Math.abs(win.vy);
+              }
+      
+              if (opts.rotationOn) {
+                let normAngle = win.angle % (Math.PI * 2);
+                if (normAngle > Math.PI) normAngle -= Math.PI * 2;
+                if (normAngle < -Math.PI) normAngle += Math.PI * 2;
+      
+                const targets = [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
+                let nearestTarget = 0;
+                let minDiff = Infinity;
+                for (const target of targets) {
+                  const diff = Math.abs(normAngle - target);
+                  if (diff < minDiff) {
+                    minDiff = diff;
+                    nearestTarget = target;
+                  }
+                }
+      
+                const angleDiff = nearestTarget - normAngle;
+      
+                if (currentGravity > 0) {
+                  win.angvel += 14.0 * Math.sin(angleDiff) * dt;
+                }
+                win.angvel *= Math.exp(-4.0 * dt);
+      
+                if (Math.abs(angleDiff) < 0.15 && Math.abs(win.angvel) < 0.8 && Math.abs(win.vy) < 25) {
+                  win.angle = nearestTarget;
+                  win.angvel = 0;
+                  if (Math.abs(win.vy) < 15) win.vy = 0;
                 }
               }
-    
-              const angleDiff = nearestTarget - normAngle;
-    
-              if (currentGravity > 0) {
-                win.angvel += 14.0 * Math.sin(angleDiff) * dt;
-              }
-              win.angvel *= Math.exp(-4.0 * dt);
-    
-              if (Math.abs(angleDiff) < 0.15 && Math.abs(win.angvel) < 0.8 && Math.abs(win.vy) < 25) {
-                win.angle = nearestTarget;
-                win.angvel = 0;
-                if (Math.abs(win.vy) < 15) win.vy = 0;
-              }
             }
-          }
-    
-          win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
-    
-          if (hit && hitSpeed > 120) {
-            win.squashT = 0;
-            win.squashAmount = Math.min(0.24, hitSpeed / 900.0);
-            win.squashNx = 0;
-            win.squashNy = -1;
-    
-            const f = Math.min(1.0, hitSpeed / 2000.0);
-            const mag = 12.0 * f * f;
-            if (mag > shakeMag) {
-              shakeMag = mag;
-              shakeT = 0;
+      
+            win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
+      
+            if (hit && hitSpeed > 120) {
+              win.squashT = 0;
+              win.squashAmount = Math.min(0.24, hitSpeed / 900.0);
+              win.squashNx = 0;
+              win.squashNy = -1;
+      
+              const f = Math.min(1.0, hitSpeed / 2000.0);
+              const mag = 12.0 * f * f;
+              if (mag > shakeMag) {
+                shakeMag = mag;
+                shakeT = 0;
+              }
+      
+              playKnockSound(hitSpeed, opts.soundOn);
             }
-    
-            playKnockSound(hitSpeed, opts.soundOn);
           }
         }
     
-        if (opts.wobbleOn) {
+        if (opts.wobbleOn && !opts.bspTilingOn) {
           win.wobble.step(dt);
         }
     
@@ -859,12 +866,12 @@ export const PhysicsSection: React.FC = () => {
         ctx.save();
         ctx.translate(win.x + win.w / 2, win.y + win.h / 2);
     
-        if (opts.rotationOn && win.angle !== 0) {
+        if (opts.rotationOn && win.angle !== 0 && !opts.bspTilingOn) {
           ctx.rotate(win.angle);
         }
         ctx.translate(-win.w / 2, -win.h / 2);
     
-        if (opts.wobbleOn && win.isDragging) {
+        if (opts.wobbleOn && win.isDragging && !opts.bspTilingOn) {
           const grid = WOBBLE_GRID;
           const gridStepU = win.w / (grid - 1);
           const gridStepV = win.h / (grid - 1);
@@ -935,6 +942,8 @@ export const PhysicsSection: React.FC = () => {
           }
 
           if (localY <= 28) {
+            if (optsRef.current.bspTilingOn) return; // Disallow dragging in BSP Mode entirely!
+
             activeDragWin = win;
             win.isDragging = true;
             desktopRef.current.style.cursor = 'grabbing';
@@ -984,7 +993,8 @@ export const PhysicsSection: React.FC = () => {
             if (localY <= 28 && localX >= win.w - 24 && localX <= win.w - 4) {
               desktopRef.current.style.cursor = 'pointer';
             } else if (localY <= 28) {
-              desktopRef.current.style.cursor = 'grab';
+              // Show normal default cursor instead of grab hand if BSP is ON
+              desktopRef.current.style.cursor = optsRef.current.bspTilingOn ? 'default' : 'grab';
             } else {
               desktopRef.current.style.cursor = 'default';
             }
@@ -1018,7 +1028,7 @@ export const PhysicsSection: React.FC = () => {
           const vy = (curLy - histY[oldest]) / dtS;
           const speed = Math.hypot(vx, vy);
 
-          if (optsRef.current.rotationOn && speed > 150.0) {
+          if (optsRef.current.rotationOn && speed > 150.0 && !optsRef.current.bspTilingOn) {
             const dir = Math.atan2(vy, vx);
             if (!swirlHave) {
               swirlDir = dir;
@@ -1085,7 +1095,7 @@ export const PhysicsSection: React.FC = () => {
       win.vx = throwVx;
       win.vy = throwVy;
 
-      if (optsRef.current.rotationOn) {
+      if (optsRef.current.rotationOn && !optsRef.current.bspTilingOn) {
         win.angvel = Math.max(-6.0, Math.min(6.0, win.angvel));
       }
 
@@ -1390,6 +1400,18 @@ export const PhysicsSection: React.FC = () => {
                           }`}
                         >
                           {soundOn ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>BSP Tiling</span>
+                        <button
+                          onClick={() => setBspTilingOn(!bspTilingOn)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
+                            bspTilingOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {bspTilingOn ? 'ON' : 'OFF'}
                         </button>
                       </div>
 

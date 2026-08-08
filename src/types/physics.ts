@@ -9,6 +9,8 @@ export interface WindowBody {
   vy: number;
   w: number;
   h: number;
+  origW?: number;
+  origH?: number;
   angle: number;
   angvel: number;
   mass: number;
