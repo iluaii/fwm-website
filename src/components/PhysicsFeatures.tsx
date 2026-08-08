@@ -18,7 +18,7 @@ export const PhysicsFeatures: React.FC = () => {
   }, [selectedCategory]);
 
   return (
-    <section id="features" className="relative z-10 py-24 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col justify-center">
+    <section id="features" className="relative z-10 py-24 px-4 sm:px-6 max-w-6xl mx-auto flex flex-col justify-center min-h-[800px] [content-visibility:auto]">
       <div className="text-center mb-12 space-y-4">
         <div
           className="inline-flex items-center space-x-2 px-4 py-1.5 bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest"
@@ -26,9 +26,9 @@ export const PhysicsFeatures: React.FC = () => {
         >
           <span>Feature Index</span>
         </div>
-        <h2 className="font-display italic text-4xl sm:text-6xl font-bold text-slate-100">
+        <h2 className="font-display italic text-4xl sm:text-6xl font-bold text-slate-100 min-h-[1.2em]">
           Everything{' '}
-          <span className="inline-block">
+          <span className="inline-block align-baseline min-w-[2.2ch]">
             <ProximityText
               text="fwm"
               preset="tiltCard-magnetic-opacity-glow"
@@ -43,7 +43,7 @@ export const PhysicsFeatures: React.FC = () => {
           </span>{' '}
           Can Do
         </h2>
-        <p className="font-body text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-light">
+        <p className="font-body text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-light min-h-[3em]">
           Browse features by system architecture, physics engine details, and window management controls.
         </p>
       </div>
