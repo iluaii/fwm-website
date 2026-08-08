@@ -27,9 +27,9 @@ export const Hero: React.FC = () => {
           </div>
         </Proximity>
 
-        <h1 className="text-4xl sm:text-6xl md:text-7xl font-display font-light text-slate-100 tracking-tight leading-[1.15]">
+        <h1 className="text-4xl sm:text-6xl md:text-7xl font-display font-light text-slate-100 tracking-tight leading-[1.15] min-h-[2.4em] sm:min-h-[2.2em]">
           Welcome to a world where{' '}
-          <span className="inline-block">
+          <span className="inline-block align-baseline min-w-[3.2ch]">
             <ProximityText
               text="physics"
               preset="tiltCard-magnetic-opacity-glow"
