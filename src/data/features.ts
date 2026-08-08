@@ -8,26 +8,26 @@ export interface FeatureItem {
 export const allFeatures: FeatureItem[] = [
   {
     category: 'Rigid-Body Physics Engine',
-    title: 'Box2D 3.x Native Integration',
-    desc: 'Pure C11 rigid-body simulation in src/physics.c. Windows are impulse-driven bodies with 0.3 restitution, Coulomb contact friction, and zero sub-pixel jitter.',
+    title: 'Box2D 3.x Engine Integration',
+    desc: 'Powered by Box2D 3.x via src/physics.c: impulse-based collisions, proper mass ratios, resting contact and sleeping. No hand-rolled solver artifacts.',
     bind: 'Box2D 3.x',
   },
   {
     category: 'Rigid-Body Physics Engine',
-    title: 'Dynamic Mass Scaling (Size vs. RAM)',
-    desc: 'Weight is derived from window surface area (0.0005 kg/px²) or live Linux process RSS memory from /proc/$PID/stat (mass = "ram"). Heavy apps weigh like concrete walls!',
+    title: 'Dynamic Mass Modes (Size vs. RAM)',
+    desc: 'Window mass is set by area (0.0005 density) or application RSS memory from /proc/$PID/stat (mass = "ram"). Under RAM mode, a 2GB browser shoves a terminal aside!',
     bind: 'mass = "ram"',
   },
   {
     category: 'Rigid-Body Physics Engine',
-    title: 'Gravity Steps & 1800 px/s Throw Limits',
-    desc: 'Cycle Super+G between zero-g, space mode, and Earth gravity (9.8 m/s²). Continuous 16-substep collision (src/defines.h) prevents tunneling at up to 30,000 px/s drags.',
+    title: 'Gravity Toggles & 1800 px/s Throw Limit',
+    desc: 'fwm starts in zero-g. Super+G cycles gravity steps (gravity = 981.0 px/s² at 100 px/m scale). Continuous 16-substep solver prevents tunneling under fast drags.',
     bind: 'Super + G',
   },
   {
     category: 'Rigid-Body Physics Engine',
     title: 'Free Rotation & Compound Pendulum',
-    desc: 'Super+R hands rotation to Box2D. Dragging by a corner calculates compound pendulum torque (src/server_drag.c) while stirring the mouse winds up rotational momentum.',
+    desc: 'Super+R hands rotation to Box2D. Dragging by a corner calculates compound pendulum torque while stirring the mouse winds up rotational momentum.',
     bind: 'Super + R',
   },
   {
