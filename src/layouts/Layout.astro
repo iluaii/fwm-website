@@ -257,7 +257,7 @@ const {
     <SmoothScroll client:only="react" />
     <Navbar client:load />
     <slot />
-    <Analytics />
-    <SpeedInsights />
+    <Analytics client:load scriptSrc="https://va.vercel-scripts.com/v1/script.js" />
+    <SpeedInsights client:load scriptSrc="https://speed-insights.vercel.com/static/speed-insights.js" />
   </body>
 </html>
