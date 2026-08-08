@@ -13,6 +13,49 @@
   }
 }
 
+@layer components {
+  /* Reusable Hexagonal / Chamfered Clip Paths */
+  .clip-hex-6 { clip-path: polygon(6px 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0% 50%); }
+  .clip-hex-8 { clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%); }
+  .clip-hex-10 { clip-path: polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%); }
+  .clip-hex-12 { clip-path: polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%); }
+  .clip-hex-14 { clip-path: polygon(14px 0%, calc(100% - 14px) 0%, 100% 50%, calc(100% - 14px) 100%, 14px 100%, 0% 50%); }
+  .clip-hex-16 { clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0% 50%); }
+  .clip-hex-40 { clip-path: polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%); }
+
+  /* Repeated Magnetic/Proximity Text */
+  .fwm-prox-text {
+    @apply font-display italic font-bold text-amber-400 cursor-pointer transition-colors drop-shadow-[0_0_25px_rgba(208,168,44,0.45)] hover:text-amber-300;
+  }
+
+  /* Typographic Patterns */
+  .fwm-title {
+    @apply font-display italic font-bold text-slate-100;
+  }
+  .fwm-desc {
+    @apply font-body font-light text-slate-400;
+  }
+
+  /* Repeated Glass Badges / Tags */
+  .fwm-badge {
+    @apply border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest;
+  }
+
+  /* Physics Interactive Menu Toggle Buttons */
+  .fwm-btn-toggle {
+    @apply px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer;
+  }
+  .fwm-btn-segment {
+    @apply px-1.5 py-0.5 text-[9px] uppercase font-bold rounded-none cursor-pointer;
+  }
+  .fwm-btn-active {
+    @apply bg-amber-400 text-slate-950;
+  }
+  .fwm-btn-inactive {
+    @apply bg-slate-800 text-slate-400;
+  }
+}
+
 /* Lenis Smooth Scroll Rules */
 html.lenis, html.lenis body {
   height: auto;

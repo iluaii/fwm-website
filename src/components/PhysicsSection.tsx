@@ -17,7 +17,7 @@ if (typeof window !== 'undefined') {
 }
 
 // --- SAT OBB RIGID BODY COLLISION HELPERS ---
-// Pre-allocated object pools to prevent GC stuttering
+// Pre-allocated object pools to prevent GC stuttering (Issue #2 Fix)
 const _cPool = [[{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}], [{x:0,y:0},{x:0,y:0},{x:0,y:0},{x:0,y:0}]];
 let _cIdx = 0;
 
@@ -173,8 +173,8 @@ export const PhysicsSection: React.FC = () => {
   const focusedTitleRef = useRef<string>('fwm-terminal');
   const lastTelemetryTextRef = useRef<string>('');
   const lastSoundTimeRef = useRef<number>(0);
-  const lastTelemetryDataRef = useRef({ angle: -1, speed: -1, mass: -1, title: '' });
-  const sortedWindowsRef = useRef<WindowBody[]>([]);
+  const lastTelemetryDataRef = useRef({ angle: -1, speed: -1, mass: -1, title: '' }); // Issue #5 Fix Cache
+  const sortedWindowsRef = useRef<WindowBody[]>([]); // Issue #2 Fix array pool
   
   const deskRectRef = useRef<DOMRect | null>(null);
   
@@ -186,7 +186,7 @@ export const PhysicsSection: React.FC = () => {
     };
     updateRect();
     window.addEventListener('resize', updateRect);
-    // REMOVED scroll listener to fix Layout Thrashing & Scroll Jank
+    // REMOVED scroll listener to fix Layout Thrashing & Scroll Jank (Issue #3 Fix)
     return () => {
       window.removeEventListener('resize', updateRect);
     };
@@ -1157,17 +1157,17 @@ export const PhysicsSection: React.FC = () => {
   return (
     <>
     <div className="py-12 px-4 text-center space-y-4 z-10 relative">
-      <div className="inline-flex items-center space-x-2 px-3.5 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest rounded-none">
+      <div className="fwm-badge inline-flex items-center space-x-2 px-3.5 py-1 bg-amber-500/10 rounded-none">
         <span>Interactive Compositor Sandbox</span>
       </div>
     
-      <h2 className="font-display italic text-3xl sm:text-5xl font-bold text-slate-100">
+      <h2 className="fwm-title text-3xl sm:text-5xl">
         Scroll down to{' '}
         <span className="inline-block">
           <ProximityText
             text="taste the physics"
             preset="tiltCard-magnetic-opacity-glow"
-            textClassName="font-display italic font-bold text-amber-400 px-1 cursor-pointer hover:text-amber-300 transition-colors drop-shadow-[0_0_25px_rgba(208,168,44,0.45)]"
+            textClassName="fwm-prox-text px-1"
             reach={2}
             duration={1}
             opacity={[0.7, 1]}
@@ -1179,16 +1179,13 @@ export const PhysicsSection: React.FC = () => {
         yourself
       </h2>
     
-      <p className="font-body text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-light leading-relaxed">
+      <p className="fwm-desc text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
         Experience fwm's Box2D 3.x rigid body dynamics, corner pendulum torque, swirl spin momentum, 9x9 wobble mesh, and collision knock sound.
       </p>
     
       {/* DISCLAIMER BANNER */}
       <div className="pt-2 flex justify-center">
-        <div
-          className="inline-flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-amber-500/25 text-slate-300 font-mono text-xs max-w-2xl text-left shadow-xl"
-          style={{ clipPath: 'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)' }}
-        >
+        <div className="inline-flex items-center space-x-3 px-5 py-2.5 bg-slate-900/90 border border-amber-500/25 text-slate-300 font-mono text-xs max-w-2xl text-left shadow-xl clip-hex-12">
           <span className="text-amber-400 font-bold shrink-0 text-sm">💡 Disclaimer:</span>
           <span className="text-[11px] text-slate-400 font-light leading-snug">
             This in-browser sandbox is a web simulation for demonstration purposes. The actual native C11 <code className="text-amber-300 font-mono bg-slate-950 px-1 py-0.5 border border-slate-800">fwm</code> Wayland compositor has significantly more features (3D cylinder Expo workspaces, Tab stacking, real PipeWire CAVA FFT spectrums, and <code className="text-amber-300 font-mono bg-slate-950 px-1 py-0.5 border border-slate-800">fwmctl</code> IPC) unconstrained by browser limits.
@@ -1203,13 +1200,13 @@ export const PhysicsSection: React.FC = () => {
           <div className="absolute left-[4vw] top-[18vh] w-[90vw] md:w-[40vw] z-30 pointer-events-none">
             {/* Step 1: Real-World Dynamics */}
             <div ref={textStep1Ref} className="opacity-0 space-y-4">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest rounded-none">
+              <div className="fwm-badge inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/10 rounded-none">
                 <span>01 • Rigid Body Dynamics</span>
               </div>
-              <h3 className="font-display italic text-3xl md:text-5xl font-bold text-slate-100 drop-shadow-md">
+              <h3 className="fwm-title text-3xl md:text-5xl drop-shadow-md">
                 Physics-First <span className="text-amber-400">Window Control</span>
               </h3>
-              <p className="font-body text-slate-300 text-sm md:text-base font-light leading-relaxed">
+              <p className="fwm-desc text-slate-300 text-sm md:text-base leading-relaxed">
                 In <strong className="text-slate-100">fwm</strong>, window bodies are driven by Box2D 3.x via <code className="text-amber-300 font-mono text-xs bg-slate-900 px-1.5 py-0.5 border border-slate-800">src/physics.c</code>. Every window is an impulse-driven body rather than a static coordinate assignment.
               </p>
               <ul className="space-y-2.5 pt-1 font-body text-xs md:text-sm text-slate-300">
@@ -1230,13 +1227,13 @@ export const PhysicsSection: React.FC = () => {
             
             {/* Step 2: Under The Hood Architecture */}
             <div ref={textStep2Ref} className="opacity-0 absolute top-0 left-0 w-full space-y-4">
-              <div className="inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-xs uppercase tracking-widest rounded-none">
+              <div className="fwm-badge inline-flex items-center space-x-2 px-3 py-1 bg-amber-500/10 rounded-none">
                 <span>02 • Under The Hood</span>
               </div>
-              <h3 className="font-display italic text-3xl md:text-5xl font-bold text-slate-100 drop-shadow-md">
+              <h3 className="fwm-title text-3xl md:text-5xl drop-shadow-md">
                 Engineered in C for <span className="text-amber-400">Wayland</span>
               </h3>
-              <p className="font-body text-slate-300 text-sm md:text-base font-light leading-relaxed">
+              <p className="fwm-desc text-slate-300 text-sm md:text-base leading-relaxed">
                 Built natively in C11 on <code className="text-amber-300 font-mono text-xs bg-slate-900 px-1.5 py-0.5 border border-slate-800">wlroots 0.20</code> and <code className="text-amber-300 font-mono text-xs bg-slate-900 px-1.5 py-0.5 border border-slate-800">Box2D 3.x</code> for zero sub-pixel jitter.
               </p>
               <ul className="space-y-2.5 pt-1 font-body text-xs md:text-sm text-slate-300">
@@ -1281,11 +1278,7 @@ export const PhysicsSection: React.FC = () => {
 
               <header className="w-full px-3 pt-3 flex items-center justify-between z-30 pointer-events-auto select-none">
                 <div
-                  className="px-3 py-1 bg-[#131519]/90 border border-slate-700/50 text-amber-400 font-mono text-[10px] flex items-center space-x-1.5"
-                  style={{
-                    clipPath:
-                      'polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%)',
-                  }}
+                  className="px-3 py-1 bg-[#131519]/90 border border-slate-700/50 text-amber-400 font-mono text-[10px] flex items-center space-x-1.5 clip-hex-10"
                 >
                   <span className="w-1.5 h-1.5 rounded-none bg-amber-400 animate-pulse" />
                   <span ref={telemetryRef}>
@@ -1294,11 +1287,7 @@ export const PhysicsSection: React.FC = () => {
                 </div>
 
                 <div
-                  className="px-3 py-1 bg-[#131519]/90 border border-slate-700/50 flex items-center space-x-1.5 relative"
-                  style={{
-                    clipPath:
-                      'polygon(10px 0%, calc(100% - 10px) 0%, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0% 50%)',
-                  }}
+                  className="px-3 py-1 bg-[#131519]/90 border border-slate-700/50 flex items-center space-x-1.5 relative clip-hex-10"
                 >
                   {Array.from({ length: 10 }).map((_, i) => (
                     <button
@@ -1324,41 +1313,27 @@ export const PhysicsSection: React.FC = () => {
 
                 <div className="flex items-center space-x-1.5 relative">
                   <div
-                    className="px-2.5 py-1 bg-[#131519]/90 border border-slate-700/50 text-[#e8ecf0] font-mono text-[10px] font-bold"
-                    style={{
-                      clipPath:
-                        'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)',
-                    }}
+                    className="px-2.5 py-1 bg-[#131519]/90 border border-slate-700/50 text-[#e8ecf0] font-mono text-[10px] font-bold clip-hex-8"
                   >
                     <span>{clock || '21:42'}</span>
                   </div>
 
                   <button
                     onClick={() => setShowModes(!showModes)}
-                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-mono text-[10px] font-bold transition-colors cursor-pointer"
-                    style={{
-                      clipPath:
-                        'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)',
-                    }}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-slate-950 font-mono text-[10px] font-bold transition-colors cursor-pointer clip-hex-8"
                   >
                     ⚙ Modes
                   </button>
 
                   {showModes && (
                     <div
-                      className="absolute top-9 right-0 w-60 bg-[#131519]/95 border border-amber-500/40 p-3 z-40 font-mono text-xs space-y-2.5 text-[#e8ecf0]"
-                      style={{
-                        clipPath:
-                          'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)',
-                      }}
+                      className="absolute top-9 right-0 w-60 bg-[#131519]/95 border border-amber-500/40 p-3 z-40 font-mono text-xs space-y-2.5 text-[#e8ecf0] clip-hex-12"
                     >
                       <div className="flex items-center justify-between text-slate-300">
                         <span>Gravity</span>
                         <button
                           onClick={() => setGravityOn(!gravityOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            gravityOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${gravityOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {gravityOn ? 'ON' : 'OFF'}
                         </button>
@@ -1374,11 +1349,7 @@ export const PhysicsSection: React.FC = () => {
                                 setGravityType(type);
                                 setGravityOn(type !== 'space');
                               }}
-                              className={`px-1.5 py-0.5 text-[9px] uppercase font-bold rounded-none cursor-pointer ${
-                                gravityType === type && gravityOn
-                                  ? 'bg-amber-400 text-slate-950'
-                                  : 'bg-slate-800 text-slate-400'
-                              }`}
+                              className={`fwm-btn-segment ${gravityType === type && gravityOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                             >
                               {type}
                             </button>
@@ -1393,11 +1364,7 @@ export const PhysicsSection: React.FC = () => {
                             <button
                               key={mode}
                               onClick={() => setMassMode(mode)}
-                              className={`px-1.5 py-0.5 text-[9px] uppercase font-bold rounded-none cursor-pointer ${
-                                massMode === mode
-                                  ? 'bg-amber-400 text-slate-950'
-                                  : 'bg-slate-800 text-slate-400'
-                              }`}
+                              className={`fwm-btn-segment ${massMode === mode ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                             >
                               {mode}
                             </button>
@@ -1409,9 +1376,7 @@ export const PhysicsSection: React.FC = () => {
                         <span>Free Rotation</span>
                         <button
                           onClick={() => setRotationOn(!rotationOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            rotationOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${rotationOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {rotationOn ? 'ON' : 'OFF'}
                         </button>
@@ -1421,9 +1386,7 @@ export const PhysicsSection: React.FC = () => {
                         <span>Wobble Jelly</span>
                         <button
                           onClick={() => setWobbleOn(!wobbleOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            wobbleOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${wobbleOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {wobbleOn ? 'ON' : 'OFF'}
                         </button>
@@ -1433,9 +1396,7 @@ export const PhysicsSection: React.FC = () => {
                         <span>Collision Knock</span>
                         <button
                           onClick={() => setSoundOn(!soundOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            soundOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${soundOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {soundOn ? 'ON' : 'OFF'}
                         </button>
@@ -1445,9 +1406,7 @@ export const PhysicsSection: React.FC = () => {
                         <span>BSP Tiling</span>
                         <button
                           onClick={() => setBspTilingOn(!bspTilingOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            bspTilingOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${bspTilingOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {bspTilingOn ? 'ON' : 'OFF'}
                         </button>
@@ -1457,9 +1416,7 @@ export const PhysicsSection: React.FC = () => {
                         <span>Breakable Windows</span>
                         <button
                           onClick={() => setBreakableOn(!breakableOn)}
-                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
-                            breakableOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
-                          }`}
+                          className={`fwm-btn-toggle ${breakableOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
                         >
                           {breakableOn ? 'ON' : 'OFF'}
                         </button>

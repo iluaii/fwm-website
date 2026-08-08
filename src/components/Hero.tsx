@@ -19,9 +19,7 @@ export const Hero: React.FC = () => {
         
         {/* Proximity Magnetic Badge */}
         <Proximity preset="tiltCard-magnetic" reach={1.5} duration={0.3} ease="power2.out">
-          <div
-            className="prox-item inline-flex items-center space-x-2.5 px-4 py-2 bg-slate-900/90 border border-amber-500/30 text-amber-300 font-mono text-xs tracking-widest uppercase rounded-full shadow-[0_0_20px_rgba(208,168,44,0.15)] cursor-pointer"
-          >
+          <div className="prox-item fwm-badge inline-flex items-center space-x-2.5 px-4 py-2 bg-slate-900/90 rounded-full shadow-[0_0_20px_rgba(208,168,44,0.15)] cursor-pointer">
             <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
             <span>FWM • Wayland Compositor • Box2D 3.x</span>
           </div>
@@ -33,7 +31,7 @@ export const Hero: React.FC = () => {
             <ProximityText
               text="physics"
               preset="tiltCard-magnetic-opacity-glow"
-              textClassName="font-display italic font-bold text-amber-400 px-2 cursor-pointer hover:text-amber-300 transition-colors drop-shadow-[0_0_25px_rgba(208,168,44,0.45)]"
+              textClassName="fwm-prox-text px-2"
               reach={2}
               duration={1}
               opacity={[0.7, 1]}
@@ -45,7 +43,7 @@ export const Hero: React.FC = () => {
           is not boring anymore.
         </h1>
 
-        <p className="font-body text-lg sm:text-xl text-slate-400 max-w-2xl font-light leading-relaxed">
+        <p className="fwm-desc text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed">
           Windows behave as real physical objects with mass, momentum, inertia, and velocity. Throw windows, stack them under Earth gravity, or watch them tumble in zero-g.
         </p>
 
@@ -53,8 +51,7 @@ export const Hero: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 pt-4">
           <a
             href="#physics"
-            className="group relative px-7 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(208,168,44,0.4)] hover:shadow-[0_0_30px_#d0a82c] flex items-center space-x-2"
-            style={{ clipPath: 'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)' }}
+            className="group relative px-7 py-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(208,168,44,0.4)] hover:shadow-[0_0_30px_#d0a82c] flex items-center space-x-2 clip-hex-12"
           >
             <span>🎮 Try Sandbox</span>
             <span className="group-hover:translate-x-1 transition-transform">↓</span>
@@ -62,8 +59,7 @@ export const Hero: React.FC = () => {
 
           <button
             onClick={copyCommand}
-            className="group relative flex items-center space-x-3 px-6 py-3 bg-slate-900/90 border border-slate-700/80 hover:border-amber-400/80 text-slate-200 font-mono text-xs transition-all cursor-pointer shadow-lg rounded-none"
-            style={{ clipPath: 'polygon(12px 0%, calc(100% - 12px) 0%, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0% 50%)' }}
+            className="group relative flex items-center space-x-3 px-6 py-3 bg-slate-900/90 border border-slate-700/80 hover:border-amber-400/80 text-slate-200 font-mono text-xs transition-all cursor-pointer shadow-lg rounded-none clip-hex-12"
           >
             <span className="text-amber-400">📋</span>
             <span>{copied ? '✓ Copied Command!' : 'Copy Install Command'}</span>

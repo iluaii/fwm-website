@@ -17,22 +17,16 @@ export const InstallSection: React.FC = () => {
 
   return (
     <section id="install" className="relative z-10 pt-2 pb-16 px-4 sm:px-6 max-w-4xl mx-auto text-center">
-      <div 
-        className="p-[1px] bg-gradient-to-r from-amber-500/30 via-amber-400/60 to-amber-500/30 shadow-[0_0_40px_rgba(208,168,44,0.15)] transition-all duration-300 mx-auto"
-        style={{ clipPath: 'polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%)' }}
-      >
-        <div 
-          className="bg-slate-900/95 backdrop-blur-md p-10 sm:p-14 space-y-8 flex flex-col items-center"
-          style={{ clipPath: 'polygon(40px 0%, calc(100% - 40px) 0%, 100% 50%, calc(100% - 40px) 100%, 40px 100%, 0% 50%)' }}
-        >
+      <div className="p-[1px] bg-gradient-to-r from-amber-500/30 via-amber-400/60 to-amber-500/30 shadow-[0_0_40px_rgba(208,168,44,0.15)] transition-all duration-300 mx-auto clip-hex-40">
+        <div className="bg-slate-900/95 backdrop-blur-md p-10 sm:p-14 space-y-8 flex flex-col items-center clip-hex-40">
           <div className="space-y-4">
-            <h2 className="font-display italic text-3xl sm:text-5xl font-bold text-slate-100 drop-shadow-md">
+            <h2 className="fwm-title text-3xl sm:text-5xl drop-shadow-md">
               Ready to experience{' '}
               <span className="inline-block">
                 <ProximityText
                   text="fwm?"
                   preset="tiltCard-magnetic-opacity-glow"
-                  textClassName="font-display italic font-bold text-amber-400 px-1 cursor-pointer hover:text-amber-300 transition-colors drop-shadow-[0_0_25px_rgba(208,168,44,0.45)]"
+                  textClassName="fwm-prox-text px-1"
                   reach={2}
                   duration={1}
                   opacity={[0.7, 1]}
@@ -42,7 +36,7 @@ export const InstallSection: React.FC = () => {
                 />
               </span>
             </h2>
-            <p className="font-body text-slate-300 text-base sm:text-lg max-w-xl mx-auto font-light">
+            <p className="fwm-desc text-slate-300 text-base sm:text-lg max-w-xl mx-auto">
               Choose your preferred installation method. Supported on Arch, Debian/Ubuntu, Fedora, and Void Linux.
             </p>
           </div>

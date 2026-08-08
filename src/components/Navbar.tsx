@@ -25,17 +25,9 @@ export const Navbar: React.FC = () => {
     <header className="fixed top-3 sm:top-4 left-0 right-0 z-40 flex justify-center px-2 sm:px-4 pointer-events-none">
       <div
         id="navbar-container"
-        className="pointer-events-auto p-[1px] bg-gradient-to-r from-amber-500/40 via-amber-400/80 to-amber-500/40 shadow-[0_0_25px_rgba(208,168,44,0.2)] transition-opacity duration-300 w-full max-w-[720px]"
-        style={{
-          clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0% 50%)',
-        }}
+        className="pointer-events-auto p-[1px] bg-gradient-to-r from-amber-500/40 via-amber-400/80 to-amber-500/40 shadow-[0_0_25px_rgba(208,168,44,0.2)] transition-opacity duration-300 w-full max-w-[720px] clip-hex-16"
       >
-        <nav
-          className="flex items-center justify-between px-3 sm:px-6 py-1.5 sm:py-2 bg-slate-950/95 backdrop-blur-md text-slate-200"
-          style={{
-            clipPath: 'polygon(16px 0%, calc(100% - 16px) 0%, 100% 50%, calc(100% - 16px) 100%, 16px 100%, 0% 50%)',
-          }}
-        >
+        <nav className="flex items-center justify-between px-3 sm:px-6 py-1.5 sm:py-2 bg-slate-950/95 backdrop-blur-md text-slate-200 clip-hex-16">
           <a
             href="/"
             onClick={handleLogoClick}
@@ -78,10 +70,7 @@ export const Navbar: React.FC = () => {
                 key={link.name}
                 href={link.href}
                 onClick={(e) => handleNavClick(e, link.href)}
-                className="relative px-2.5 sm:px-4 py-1 font-mono text-[10px] sm:text-xs uppercase tracking-wider text-slate-300 hover:text-slate-950 font-medium transition-colors duration-300 group overflow-hidden block"
-                style={{
-                  clipPath: 'polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%)',
-                }}
+                className="relative px-2.5 sm:px-4 py-1 font-mono text-[10px] sm:text-xs uppercase tracking-wider text-slate-300 hover:text-slate-950 font-medium transition-colors duration-300 group overflow-hidden block clip-hex-8"
               >
                 <span className="absolute inset-0 bg-amber-400 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)]" />
                 <span className="relative z-10">{link.name}</span>
@@ -93,10 +82,7 @@ export const Navbar: React.FC = () => {
             href="https://github.com/iluaii/fwm"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-mono text-[10px] sm:text-xs text-slate-950 font-bold bg-amber-400 hover:bg-amber-300 px-2.5 sm:px-4 py-1 sm:py-1.5 transition-colors shadow-[0_0_10px_#d0a82c]"
-            style={{
-              clipPath: 'polygon(6px 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0% 50%)',
-            }}
+            className="font-mono text-[10px] sm:text-xs text-slate-950 font-bold bg-amber-400 hover:bg-amber-300 px-2.5 sm:px-4 py-1 sm:py-1.5 transition-colors shadow-[0_0_10px_#d0a82c] clip-hex-6"
           >
             GitHub
           </a>
