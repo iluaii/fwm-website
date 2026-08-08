@@ -1,5 +1,19 @@
-name: Vercel Production Deployment
+# ==============================================================================
+# fwm-website CI/CD Pipeline
+#
+# Automatically synchronizes fwm-repo/docs submodules, builds static Astro
+# documentation and interactive physics components, and deploys to Vercel
+# Production on every commit pushed to the 'main' branch.
+#
+# Required GitHub Repository Secrets:
+#   - VERCEL_TOKEN      : Vercel Personal Access Token
+#   - VERCEL_ORG_ID     : Vercel Organization ID (from .vercel/project.json)
+#   - VERCEL_PROJECT_ID : Vercel Project ID (from .vercel/project.json)
+# ==============================================================================
 
+name: CI/CD - Build & Deploy to Vercel
+
+# Top-level environment configuration for Vercel CLI targeting
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
   VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -8,42 +22,79 @@ on:
   push:
     branches:
       - main
+  # Enables manual pipeline execution from GitHub Actions UI
+  workflow_dispatch:
+
+# Automatically cancels in-flight builds if rapid consecutive pushes occur
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  Deploy-Production:
+  deploy:
+    name: Build & Deploy Production Site
     runs-on: ubuntu-latest
+
     steps:
-      # 1. Checkout repository with recursive submodules
-      - name: Checkout Repository
+      # ------------------------------------------------------------------
+      # Step 1: Checkout Repository with Recursive Submodules
+      # Fetches fwm-repo/docs so Astro Content Collections can parse
+      # documentation Markdown directly at build time (zero content drift).
+      # ------------------------------------------------------------------
+      - name: Checkout Repository & Submodules
         uses: actions/checkout@v4
         with:
           submodules: recursive
           fetch-depth: 0
 
-      # 2. Pull the latest fwm-repo docs submodule
+      # ------------------------------------------------------------------
+      # Step 2: Update fwm-repo Docs Submodule
+      # Ensures the local submodule HEAD aligns with the latest remote docs
+      # ------------------------------------------------------------------
       - name: Update Git Submodules
         run: git submodule update --init --recursive --remote
 
-      # 3. Setup Node.js (v22 to match package.json)
-      - name: Setup Node.js
+      # ------------------------------------------------------------------
+      # Step 3: Setup Node.js Environment
+      # Aligns with Node.js v22 as specified in package.json engine specs
+      # ------------------------------------------------------------------
+      - name: Setup Node.js (v22)
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
-      # 4. Install Dependencies
-      - name: Install Dependencies
+      # ------------------------------------------------------------------
+      # Step 4: Install Dependencies Cleanly
+      # Uses npm ci for reproducible, lockfile-bound installation
+      # ------------------------------------------------------------------
+      - name: Install Project Dependencies
         run: npm ci
 
-      # 5. Install Vercel CLI
+      # ------------------------------------------------------------------
+      # Step 5: Install Vercel CLI
+      # Global installation required for vercel pull/build/deploy steps
+      # ------------------------------------------------------------------
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      # ------------------------------------------------------------------
+      # Step 6: Pull Vercel Environment Configuration
+      # Downloads project metadata and production environment specs
+      # ------------------------------------------------------------------
+      - name: Pull Vercel Environment Specs
+        run: vercel pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
 
-      # 7. Build Production Artifacts
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+      # ------------------------------------------------------------------
+      # Step 7: Build Astro Project Artifacts
+      # Executes SSG compilation and static asset bundling
+      # ------------------------------------------------------------------
+      - name: Build Astro Project Artifacts
+        run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
-      - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      # ------------------------------------------------------------------
+      # Step 8: Deploy Prebuilt Artifacts to Vercel Edge Network
+      # Uploads prebuilt production output directly to Vercel edge nodes
+      # ------------------------------------------------------------------
+      - name: Deploy Artifacts to Vercel Production
+        run: vercel deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
