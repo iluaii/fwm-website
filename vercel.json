@@ -1,0 +1,21 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/_vercel/insights/script.js",
+      "destination": "https://va.vercel-scripts.com/v1/script.js"
+    },
+    {
+      "source": "/_vercel/insights/event",
+      "destination": "https://va.vercel-scripts.com/v1/event"
+    },
+    {
+      "source": "/_vercel/speed-insights/script.js",
+      "destination": "https://speed-insights.vercel.com/static/speed-insights.js"
+    },
+    {
+      "source": "/_vercel/speed-insights/v1/speed-insights",
+      "destination": "https://speed-insights.vercel.com/static/speed-insights"
+    }
+  ]
+}
