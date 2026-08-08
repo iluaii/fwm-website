@@ -9,6 +9,7 @@ import { drawTriangle } from '../lib/graphics/drawTriangle';
 import { getLocalWindowCoords } from '../lib/physics/geometry';
 import { getWindowTextureCanvas } from '../lib/graphics/windowTexture';
 import { updateBspLayout } from '../lib/physics/bspUpdater';
+import { checkWindowCollisionDamage, processBrokenWindows } from '../lib/physics/breakableUpdater';
 import type { WindowBody } from '../types/physics';
 
 if (typeof window !== 'undefined') {
@@ -146,6 +147,7 @@ export const PhysicsSection: React.FC = () => {
   const [wobbleOn, setWobbleOn] = useState(true);
   const [soundOn, setSoundOn] = useState(true);
   const [bspTilingOn, setBspTilingOn] = useState(false);
+  const [breakableOn, setBreakableOn] = useState(false);
   const [massMode, setMassMode] = useState<'size' | 'ram'>('size');
   const [showModes, setShowModes] = useState(false);
 
@@ -171,10 +173,10 @@ export const PhysicsSection: React.FC = () => {
     };
   }, []);
   
-  const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn });
+  const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn });
   useEffect(() => {
-    optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn };
-  }, [gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn]);
+    optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn };
+  }, [gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn]);
 
   const windowsRef = useRef<WindowBody[]>([]);
 
@@ -583,6 +585,9 @@ export const PhysicsSection: React.FC = () => {
                 shakeT = 0;
               }
             }
+
+            // Evaluate Breakable Damage
+            checkWindowCollisionDamage(w1, w2, approachSpeed, opts.breakableOn);
           }
     
           // Resting Damping
@@ -912,7 +917,10 @@ export const PhysicsSection: React.FC = () => {
     
         ctx.restore();
       });
-    
+      
+      // Clean up any bodies destroyed by collision physics during this tick!
+      processBrokenWindows(winList, windowTextureMapRef.current);
+      
       ctx.restore();
     };
 
@@ -1412,6 +1420,18 @@ export const PhysicsSection: React.FC = () => {
                           }`}
                         >
                           {bspTilingOn ? 'ON' : 'OFF'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-slate-300">
+                        <span>Breakable Windows</span>
+                        <button
+                          onClick={() => setBreakableOn(!breakableOn)}
+                          className={`px-2 py-0.5 text-[10px] font-bold rounded-none cursor-pointer ${
+                            breakableOn ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {breakableOn ? 'ON' : 'OFF'}
                         </button>
                       </div>
 

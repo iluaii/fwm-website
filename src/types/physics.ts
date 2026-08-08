@@ -9,8 +9,6 @@ export interface WindowBody {
   vy: number;
   w: number;
   h: number;
-  origW?: number;
-  origH?: number;
   angle: number;
   angvel: number;
   mass: number;
@@ -28,4 +26,13 @@ export interface WindowBody {
   zIndex: number;
   lastX: number;
   lastY: number;
+  
+  // BSP Tiling properties
+  origW?: number;
+  origH?: number;
+  
+  // Breakable windows properties
+  broken?: boolean;
+  hardness?: number;
+  toughness?: number;
 }
