@@ -169,34 +169,43 @@ export const usePhysicsEngine = ({
         win.mass = opts.massMode === 'ram' ? 342.0 : Math.round(win.w * win.h * 0.0005 * 10) / 10;
         
         if (win.isDragging) {
-          win.vx = (dragTargetX - win.x) / dt; win.vy = (dragTargetY - win.y) / dt;
-          if (opts.rotationOn && !opts.bspTilingOn) {
-            if (!pivotHave) {
-              pivotX = dragCurX; pivotY = dragCurY; pivotVx = 0; pivotVy = 0; pivotAx = 0; pivotAy = 0; pivotHave = true;
-            } else {
-              const nvx = (dragCurX - pivotX) / dt, nvy = (dragCurY - pivotY) / dt;
-              const kv = dt / (dt + 0.04);
-              const svx = pivotVx + (nvx - pivotVx) * kv, svy = pivotVy + (nvy - pivotVy) * kv;
-              const rax = (svx - pivotVx) / dt, ray = (svy - pivotVy) / dt;
-              const ka = dt / (dt + 0.08);
-              pivotAx += (rax - pivotAx) * ka; pivotAy += (ray - pivotAy) * ka;
-              pivotAx = Math.max(-20000, Math.min(20000, pivotAx)); pivotAy = Math.max(-20000, Math.min(20000, pivotAy));
-              pivotX = dragCurX; pivotY = dragCurY; pivotVx = svx; pivotVy = svy;
-    
-              const c = Math.cos(win.angle), s = Math.sin(win.angle);
-              const rx = -(c * win.grabLxCenter - s * win.grabLyCenter), ry = -(s * win.grabLxCenter + c * win.grabLyCenter);
-              const gy = currentGravity, ex = -pivotAx, ey = gy - pivotAy;
-              const inertia = (win.w * win.w + win.h * win.h) / 12.0 + (rx * rx + ry * ry);
-              if (inertia > 1.0) { const alpha = (rx * ey - ry * ex) / inertia; win.angvel += alpha * dt; }
-              win.angvel *= Math.exp(-1.2 * dt);
-              win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
-              win.angle += win.angvel * dt;
-              win.x = (dragCurX + rx) - win.w / 2; win.y = (dragCurY + ry) - win.h / 2;
-            }
-          } else {
-            win.x = dragTargetX; win.y = dragTargetY;
-          }
-        } else {
+                  // High-frequency exponential dampening (Smooths out mouse polling desync)
+                  const smoothFactor = 1 - Math.exp(-36 * dt);
+                  const lerpTargetX = win.x + (dragTargetX - win.x) * smoothFactor;
+                  const lerpTargetY = win.y + (dragTargetY - win.y) * smoothFactor;
+        
+                  win.vx = (lerpTargetX - win.x) / dt;
+                  win.vy = (lerpTargetY - win.y) / dt;
+        
+                  if (opts.rotationOn && !opts.bspTilingOn) {
+                    if (!pivotHave) {
+                      pivotX = dragCurX; pivotY = dragCurY; pivotVx = 0; pivotVy = 0; pivotAx = 0; pivotAy = 0; pivotHave = true;
+                    } else {
+                      const nvx = (dragCurX - pivotX) / dt, nvy = (dragCurY - pivotY) / dt;
+                      const kv = dt / (dt + 0.04);
+                      const svx = pivotVx + (nvx - pivotVx) * kv, svy = pivotVy + (nvy - pivotVy) * kv;
+                      const rax = (svx - pivotVx) / dt, ray = (svy - pivotVy) / dt;
+                      const ka = dt / (dt + 0.08);
+                      pivotAx += (rax - pivotAx) * ka; pivotAy += (ray - pivotAy) * ka;
+                      pivotAx = Math.max(-20000, Math.min(20000, pivotAx)); pivotAy = Math.max(-20000, Math.min(20000, pivotAy));
+                      pivotX = dragCurX; pivotY = dragCurY; pivotVx = svx; pivotVy = svy;
+        
+                      const c = Math.cos(win.angle), s = Math.sin(win.angle);
+                      const rx = -(c * win.grabLxCenter - s * win.grabLyCenter), ry = -(s * win.grabLxCenter + c * win.grabLyCenter);
+                      const gy = currentGravity, ex = -pivotAx, ey = gy - pivotAy;
+                      const inertia = (win.w * win.w + win.h * win.h) / 12.0 + (rx * rx + ry * ry);
+                      if (inertia > 1.0) { const alpha = (rx * ey - ry * ex) / inertia; win.angvel += alpha * dt; }
+                      win.angvel *= Math.exp(-1.2 * dt);
+                      win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
+                      win.angle += win.angvel * dt;
+                      win.x = (dragCurX + rx) - win.w / 2; win.y = (dragCurY + ry) - win.h / 2;
+                    }
+                  } else {
+                    // Apply smoothed positions
+                    win.x = lerpTargetX;
+                    win.y = lerpTargetY;
+                  }
+                } else {
           if (!opts.bspTilingOn) {
             win.vy += currentGravity * dt;
             const damp = Math.pow(currentGravity > 0 ? 0.985 : 0.995, dt * 60);
