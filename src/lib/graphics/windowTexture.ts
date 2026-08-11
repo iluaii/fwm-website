@@ -1,6 +1,6 @@
 import type { WindowBody } from '../../types/physics';
 
-// Render Sharp Flat Window Texture (NO ROUNDED CORNERS, CONSISTENT FASTFETCH/ASCII CAT)
+// Render Sharp Flat Window Texture (Dynamic Integer Resizing & Safe Caching)
 export function getWindowTextureCanvas(
   win: WindowBody,
   windowTextureMap: { [key: number]: HTMLCanvasElement },
@@ -10,50 +10,63 @@ export function getWindowTextureCanvas(
     windowTextureMap[win.id] = document.createElement('canvas');
   }
   
-  // Cast with local caching properties to prevent unnecessary redraws
-  const texCanvas = windowTextureMap[win.id] as HTMLCanvasElement & { _lastW?: number, _lastH?: number, _lastFocus?: boolean };
+  const texCanvas = windowTextureMap[win.id] as HTMLCanvasElement & { 
+    _lastW?: number; 
+    _lastH?: number; 
+    _lastFocus?: boolean; 
+  };
   
-  if (texCanvas.width !== win.w || texCanvas.height !== win.h) {
-    texCanvas.width = win.w;
-    texCanvas.height = win.h;
+  // Ensure integer dimensions for HTML5 Canvas buffer
+  const intW = Math.max(1, Math.round(win.w));
+  const intH = Math.max(1, Math.round(win.h));
+
+  let resized = false;
+  if (texCanvas.width !== intW) {
+    texCanvas.width = intW;
+    resized = true;
+  }
+  if (texCanvas.height !== intH) {
+    texCanvas.height = intH;
+    resized = true;
   }
 
-  // Cache Hit: If size and focus state haven't changed, skip the heavy canvas redraw!
+  // Cache Hit: ONLY skip redraw if the canvas was NOT resized (resizing wipes canvas bitmap)
   if (
-    texCanvas._lastW === win.w &&
-    texCanvas._lastH === win.h &&
+    !resized &&
+    texCanvas._lastW === intW &&
+    texCanvas._lastH === intH &&
     texCanvas._lastFocus === isFocused
   ) {
     return texCanvas;
   }
 
-  texCanvas._lastW = win.w;
-  texCanvas._lastH = win.h;
+  texCanvas._lastW = intW;
+  texCanvas._lastH = intH;
   texCanvas._lastFocus = isFocused;
 
   const texCtx = texCanvas.getContext('2d');
   if (texCtx) {
-    texCtx.clearRect(0, 0, win.w, win.h);
+    texCtx.clearRect(0, 0, intW, intH);
 
     // Window Background - SHARP RECTANGLE
     texCtx.fillStyle = '#0c0e14';
-    texCtx.fillRect(0, 0, win.w, win.h);
+    texCtx.fillRect(0, 0, intW, intH);
 
     // Window Outer Border - Sharp 2px
     texCtx.strokeStyle = isFocused ? '#7aa2f7' : '#3b4261';
     texCtx.lineWidth = 2;
-    texCtx.strokeRect(1, 1, win.w - 2, win.h - 2);
+    texCtx.strokeRect(1, 1, intW - 2, intH - 2);
 
     // Sharp Header Titlebar
     texCtx.fillStyle = '#13151a';
-    texCtx.fillRect(2, 2, win.w - 4, 26);
+    texCtx.fillRect(2, 2, intW - 4, 26);
 
     // Header Border Separator
     texCtx.strokeStyle = '#2ac3de';
     texCtx.lineWidth = 1;
     texCtx.beginPath();
     texCtx.moveTo(2, 28);
-    texCtx.lineTo(win.w - 2, 28);
+    texCtx.lineTo(intW - 2, 28);
     texCtx.stroke();
 
     // Title Text
@@ -64,63 +77,54 @@ export function getWindowTextureCanvas(
     // Window Control Dots
     texCtx.fillStyle = '#3b4261';
     texCtx.beginPath();
-    texCtx.arc(win.w - 36, 15, 4, 0, Math.PI * 2);
-    texCtx.arc(win.w - 24, 15, 4, 0, Math.PI * 2);
+    texCtx.arc(intW - 36, 15, 4, 0, Math.PI * 2);
+    texCtx.arc(intW - 24, 15, 4, 0, Math.PI * 2);
     texCtx.fill();
 
-    // Red Close Button (Clickable at win.w - 12)
+    // Red Close Button (Clickable at intW - 12)
     texCtx.fillStyle = '#f7768e';
     texCtx.beginPath();
-    texCtx.arc(win.w - 12, 15, 4, 0, Math.PI * 2);
+    texCtx.arc(intW - 12, 15, 4, 0, Math.PI * 2);
     texCtx.fill();
 
-    // CUTE ASCII CAT LOGO (Pink / Rose Theme)
-    texCtx.font = 'bold 11px monospace';
-    texCtx.fillStyle = '#f7768e';
-    texCtx.fillText('   /\\_/\\   ', 10, 68);
-    texCtx.fillText('  (=^.^=)  ', 10, 82);
-    texCtx.fillText('   >   <   ', 10, 90);
+    // CUTE ASCII CAT LOGO (Only if width is wide enough)
+    if (intW >= 180 && intH >= 110) {
+      texCtx.font = 'bold 11px monospace';
+      texCtx.fillStyle = '#f7768e';
+      texCtx.fillText('   /\\_/\\   ', 10, 68);
+      texCtx.fillText('  (=^.^=)  ', 10, 82);
+      texCtx.fillText('   >   <   ', 10, 90);
+    }
 
-    // System Details
-    const startX = 100;
-    texCtx.fillStyle = '#bb9af7';
-    texCtx.fillText('ilu@fwm-host', startX, 46);
-    texCtx.fillStyle = '#3b4261';
-    texCtx.fillText('------------', startX, 56);
+    // System Details (Responsive layout based on tile size)
+    const startX = intW >= 220 ? 100 : 10;
+    const startY = intW >= 220 ? 46 : 105;
 
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillText('OS: ', startX, 70);
-    texCtx.fillStyle = '#c0caf5';
-    texCtx.fillText('Arch Linux x86_64', startX + 24, 70);
+    if (intH >= 90) {
+      texCtx.font = 'bold 10px monospace';
+      texCtx.fillStyle = '#bb9af7';
+      texCtx.fillText('ilu@fwm-host', startX, startY);
+    }
 
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillText('Host: ', startX, 84);
-    texCtx.fillStyle = '#c0caf5';
-    texCtx.fillText('fwm Wayland WM', startX + 36, 84);
+    if (intW >= 190 && intH >= 130) {
+      texCtx.fillStyle = '#7aa2f7';
+      texCtx.fillText('OS: ', startX, startY + 20);
+      texCtx.fillStyle = '#c0caf5';
+      texCtx.fillText('Arch Linux', startX + 24, startY + 20);
 
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillText('Kernel: ', startX, 98);
-    texCtx.fillStyle = '#c0caf5';
-    texCtx.fillText('6.12.0-fwm', startX + 48, 98);
+      texCtx.fillStyle = '#7aa2f7';
+      texCtx.fillText('WM: ', startX, startY + 34);
+      texCtx.fillStyle = '#2ac3de';
+      texCtx.fillText('fwm (Box2D 3.x)', startX + 24, startY + 34);
+    }
 
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillText('WM: ', startX, 112);
-    texCtx.fillStyle = '#2ac3de';
-    texCtx.fillText('fwm (Box2D 3.x)', startX + 24, 112);
-
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillText('Memory: ', startX, 126);
-    texCtx.fillStyle = '#c0caf5';
-    texCtx.fillText('342MiB / 32GiB', startX + 48, 126);
-
-    // Prompt
-    texCtx.fillStyle = '#9ece6a';
-    texCtx.fillText('➜ ', 10, 148);
-    texCtx.fillStyle = '#c0caf5';
-    texCtx.fillText('fwmctl state --live', 24, 148);
-
-    texCtx.fillStyle = '#7aa2f7';
-    texCtx.fillRect(144, 138, 7, 11);
+    // Terminal Prompt (Only if tile is tall enough)
+    if (intH >= 150) {
+      texCtx.fillStyle = '#9ece6a';
+      texCtx.fillText('➜ ', 10, intH - 18);
+      texCtx.fillStyle = '#c0caf5';
+      texCtx.fillText('fwmctl state --live', 24, intH - 18);
+    }
   }
   return texCanvas;
 }

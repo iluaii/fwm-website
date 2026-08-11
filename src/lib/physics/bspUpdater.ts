@@ -23,25 +23,30 @@ export function updateBspLayout(
       if (!win.origH) win.origH = win.h;
 
       const animSpeed = 12.0;
-      win.x += (target.x - win.x) * animSpeed * dt;
-      win.y += (target.y - win.y) * animSpeed * dt;
+
+      // Smoothly animate position towards target slot ONLY if window is not being dragged
+      if (!win.isDragging) {
+        win.x += (target.x - win.x) * animSpeed * dt;
+        win.y += (target.y - win.y) * animSpeed * dt;
+      }
       
+      // Smoothly animate size towards target slot dimensions
       const dw = target.w - win.w;
       const dh = target.h - win.h;
       win.w += dw * animSpeed * dt;
       win.h += dh * animSpeed * dt;
 
-      // Instantly disable rotation & momentum
+      // Instantly disable rotation & momentum in BSP mode
       win.angle = 0;
       win.angvel = 0;
       win.vx = 0;
       win.vy = 0;
 
-      // Force reset wobble mesh instantly to prevent lingering jelly effects
+      // Force reset wobble mesh
       win.wobble.reset(win.w, win.h);
     });
   } else {
-    // Restore original sizes smoothly if they were previously tiled
+    // Restore original floating sizes smoothly if previously tiled
     desktopWindows.forEach((win) => {
       if (win.origW && win.origH) {
         if (win.isDragging) return;

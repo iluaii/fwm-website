@@ -8,6 +8,7 @@ import { getWindowTextureCanvas } from '../../lib/graphics/windowTexture';
 import { updateBspLayout } from '../../lib/physics/bspUpdater';
 import { checkWindowCollisionDamage, processBrokenWindows } from '../../lib/physics/breakableUpdater';
 import { testOBBCollision } from '../../lib/physics/collision';
+import { calculateBSPLayout } from '../../lib/physics/bsp';
 import type { WindowBody } from '../../types/physics';
 
 export interface PhysicsEngineProps {
@@ -72,7 +73,7 @@ export const usePhysicsEngine = ({
     
       const winList = windowsRef.current;
     
-      // 1. COLLISION
+      // 1. COLLISION (Disabled in BSP mode)
       for (let i = 0; i < winList.length; i++) {
         for (let j = i + 1; j < winList.length; j++) {
           const w1 = winList[i], w2 = winList[j];
@@ -156,7 +157,7 @@ export const usePhysicsEngine = ({
         }
       }
     
-      // 2. MOVEMENT & SOLVING
+      // 2. BSP & PHYSICS MOVEMENT INTEGRATION
       updateBspLayout(winList, activeDesktop, opts.bspTilingOn, boundsW, boundsH, dt);
       const sortedWindows = sortedWindowsRef.current;
       sortedWindows.length = 0;
@@ -167,10 +168,6 @@ export const usePhysicsEngine = ({
         if (win.activeDesktop !== activeDesktop) return;
         win.mass = opts.massMode === 'ram' ? 342.0 : Math.round(win.w * win.h * 0.0005 * 10) / 10;
         
-        const moveDx = win.x - win.lastX, moveDy = win.y - win.lastY;
-        if (opts.wobbleOn && (moveDx !== 0 || moveDy !== 0)) win.wobble.translate(moveDx, moveDy);
-        win.lastX = win.x; win.lastY = win.y;
-    
         if (win.isDragging) {
           win.vx = (dragTargetX - win.x) / dt; win.vy = (dragTargetY - win.y) / dt;
           if (opts.rotationOn && !opts.bspTilingOn) {
@@ -260,6 +257,11 @@ export const usePhysicsEngine = ({
           }
         }
     
+        // Wobble mesh translation delta
+        const moveDx = win.x - win.lastX, moveDy = win.y - win.lastY;
+        if (opts.wobbleOn && (moveDx !== 0 || moveDy !== 0)) win.wobble.translate(moveDx, moveDy);
+        win.lastX = win.x; win.lastY = win.y;
+
         if (opts.wobbleOn && !opts.bspTilingOn) win.wobble.step(dt);
     
         let sx = 1.0, sy = 1.0;
@@ -340,7 +342,7 @@ export const usePhysicsEngine = ({
             delete windowTextureMapRef.current[win.id]; winList.splice(i, 1); return;
           }
           if (localY <= 28) {
-            if (optsRef.current.bspTilingOn) return; 
+            // Dragging is now allowed in BSP Tiling Mode!
             activeDragWin = win; win.isDragging = true;
             desktopRef.current.style.cursor = 'grabbing';
             win.grabLxCenter = localX - win.w / 2; win.grabLyCenter = localY - win.h / 2;
@@ -369,7 +371,7 @@ export const usePhysicsEngine = ({
           const { localX, localY } = getLocalWindowCoords(win, curLx, curLy);
           if (localX >= 0 && localX <= win.w && localY >= 0 && localY <= win.h) {
             if (localY <= 28 && localX >= win.w - 24 && localX <= win.w - 4) { desktopRef.current.style.cursor = 'pointer'; } 
-            else if (localY <= 28) { desktopRef.current.style.cursor = optsRef.current.bspTilingOn ? 'default' : 'grab'; } 
+            else if (localY <= 28) { desktopRef.current.style.cursor = 'grab'; } 
             else { desktopRef.current.style.cursor = 'default'; }
             hovered = true; break;
           }
@@ -380,6 +382,47 @@ export const usePhysicsEngine = ({
 
       dragCurX = curLx; dragCurY = curLy;
       dragTargetX = curLx - activeDragWin.grabLx; dragTargetY = curLy - activeDragWin.grabLy;
+
+      // LIVE BSP TILE REORDERING WHEN DRAGGING OVER OTHER TILE SLOTS
+      if (optsRef.current.bspTilingOn && desktopRef.current) {
+        const winList = windowsRef.current;
+        const desktopWindows = winList.filter((w) => w.activeDesktop === activeDesktop);
+        const draggedIdx = desktopWindows.indexOf(activeDragWin);
+
+        if (draggedIdx !== -1) {
+          const boundsW = desktopRef.current.clientWidth;
+          const boundsH = desktopRef.current.clientHeight;
+          const rects = calculateBSPLayout(desktopWindows.length, boundsW, boundsH, 10, 8, 36);
+
+          const centerX = activeDragWin.x + activeDragWin.w / 2;
+          const centerY = activeDragWin.y + activeDragWin.h / 2;
+
+          let targetIdx = -1;
+          for (let k = 0; k < rects.length; k++) {
+            const r = rects[k];
+            if (
+              centerX >= r.x &&
+              centerX <= r.x + r.w &&
+              centerY >= r.y &&
+              centerY <= r.y + r.h
+            ) {
+              targetIdx = k;
+              break;
+            }
+          }
+
+          if (targetIdx !== -1 && targetIdx !== draggedIdx) {
+            const targetWin = desktopWindows[targetIdx];
+            const mainDraggedIdx = winList.indexOf(activeDragWin);
+            const mainTargetIdx = winList.indexOf(targetWin);
+
+            if (mainDraggedIdx !== -1 && mainTargetIdx !== -1) {
+              winList.splice(mainDraggedIdx, 1);
+              winList.splice(mainTargetIdx, 0, activeDragWin);
+            }
+          }
+        }
+      }
 
       const now = performance.now() / 1000;
       histX.shift(); histX.push(curLx); histY.shift(); histY.push(curLy); histTime.shift(); histTime.push(now);
@@ -423,17 +466,24 @@ export const usePhysicsEngine = ({
       win.isDragging = false; win.wobble.release();
 
       const now = performance.now() / 1000;
-      let throwVx = 0, throwVy = 0;
-      if (histCount >= 2) {
-        const oldest = 4 - histCount; const dtS = now - histTime[oldest];
-        if (dtS > 0.01) { throwVx = ((dragCurX - histX[oldest]) / dtS) * 0.65; throwVy = ((dragCurY - histY[oldest]) / dtS) * 0.65; }
+
+      if (optsRef.current.bspTilingOn) {
+        // Zero momentum in BSP mode so dropped tile glides smoothly into place
+        win.vx = 0;
+        win.vy = 0;
+      } else {
+        let throwVx = 0, throwVy = 0;
+        if (histCount >= 2) {
+          const oldest = 4 - histCount; const dtS = now - histTime[oldest];
+          if (dtS > 0.01) { throwVx = ((dragCurX - histX[oldest]) / dtS) * 0.65; throwVy = ((dragCurY - histY[oldest]) / dtS) * 0.65; }
+        }
+
+        const throwSpeed = Math.hypot(throwVx, throwVy);
+        if (throwSpeed > 1800) { const scale = 1800 / throwSpeed; throwVx *= scale; throwVy *= scale; }
+
+        win.vx = throwVx; win.vy = throwVy;
+        if (optsRef.current.rotationOn) win.angvel = Math.max(-6.0, Math.min(6.0, win.angvel));
       }
-
-      const throwSpeed = Math.hypot(throwVx, throwVy);
-      if (throwSpeed > 1800) { const scale = 1800 / throwSpeed; throwVx *= scale; throwVy *= scale; }
-
-      win.vx = throwVx; win.vy = throwVy;
-      if (optsRef.current.rotationOn && !optsRef.current.bspTilingOn) win.angvel = Math.max(-6.0, Math.min(6.0, win.angvel));
 
       activeDragWin = null; pivotHave = false;
       if (desktopRef.current) desktopRef.current.style.cursor = 'default';
