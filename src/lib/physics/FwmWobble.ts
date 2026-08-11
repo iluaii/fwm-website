@@ -71,6 +71,8 @@ export class FwmWobble {
   translate(dx: number, dy: number) {
     if (dx === 0 && dy === 0) return;
     for (let k = 0; k < WOBBLE_POINTS; k++) {
+      // Skip anchor point to prevent high-frequency energy spikes!
+      if (k === this.anchor) continue; 
       this.px[k] -= dx;
       this.py[k] -= dy;
     }
@@ -107,20 +109,17 @@ export class FwmWobble {
   step(dt: number) {
     if (dt <= 0) return;
 
-    // Clamp frame delta to 0.25s stall limit (src/server_tick.c)
     const frameDt = Math.min(0.25, dt);
     this.accumulator += frameDt;
 
     let stepsDone = 0;
 
-    // Consume time in exact 2.083ms slices (1/480s)
     while (this.accumulator >= WOBBLE_STEP_S && stepsDone < WOBBLE_MAX_STEPS) {
       this.substep(WOBBLE_STEP_S);
       this.accumulator -= WOBBLE_STEP_S;
       stepsDone++;
     }
 
-    // Drop remaining accumulator if stalled beyond max steps
     if (this.accumulator > WOBBLE_STEP_S * 2) {
       this.accumulator = 0;
     }
