@@ -32,15 +32,17 @@ export const PhysicsSection: React.FC = () => {
 
   const [gravityOn, setGravityOn] = useState(true);
   const [gravityType, setGravityType] = useState<'earth' | 'moon' | 'space'>('earth');
-  const [rotationOn, setRotationOn] = useState(true);
+  
+  const [rotationOn, setRotationOn] = useState(false);
   const [wobbleOn, setWobbleOn] = useState(true);
+
   const [soundOn, setSoundOn] = useState(true);
   const [bspTilingOn, setBspTilingOn] = useState(false);
   const [breakableOn, setBreakableOn] = useState(false);
   const [massMode, setMassMode] = useState<'size' | 'ram'>('size');
   const [showModes, setShowModes] = useState(false);
 
-  // Sync physics toggles internally for the hook
+  // Sync options ref for the engine
   const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn });
   useEffect(() => {
     optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn };

@@ -89,12 +89,34 @@ export const DesktopHeader: React.FC<DesktopHeaderProps> = (props) => (
 
           <div className="flex items-center justify-between text-slate-300">
             <span>Free Rotation</span>
-            <button onClick={() => props.setRotationOn(!props.rotationOn)} className={`fwm-btn-toggle ${props.rotationOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}>{props.rotationOn ? 'ON' : 'OFF'}</button>
+            <button 
+              onClick={() => {
+                const nextRot = !props.rotationOn;
+                props.setRotationOn(nextRot);
+                if (nextRot) {
+                  props.setWobbleOn(false);
+                }
+              }} 
+              className={`fwm-btn-toggle ${props.rotationOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
+            >
+              {props.rotationOn ? 'ON' : 'OFF'}
+            </button>
           </div>
           
           <div className="flex items-center justify-between text-slate-300">
             <span>Wobble Jelly</span>
-            <button onClick={() => props.setWobbleOn(!props.wobbleOn)} className={`fwm-btn-toggle ${props.wobbleOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}>{props.wobbleOn ? 'ON' : 'OFF'}</button>
+            <button 
+              onClick={() => {
+                const nextWob = !props.wobbleOn;
+                props.setWobbleOn(nextWob);
+                if (nextWob) {
+                  props.setRotationOn(false);
+                }
+              }} 
+              className={`fwm-btn-toggle ${props.wobbleOn ? 'fwm-btn-active' : 'fwm-btn-inactive'}`}
+            >
+              {props.wobbleOn ? 'ON' : 'OFF'}
+            </button>
           </div>
 
           <div className="flex items-center justify-between text-slate-300">
