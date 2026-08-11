@@ -73,206 +73,261 @@ export const usePhysicsEngine = ({
     
       const winList = windowsRef.current;
     
-      // 1. COLLISION (Disabled in BSP mode)
-      for (let i = 0; i < winList.length; i++) {
-        for (let j = i + 1; j < winList.length; j++) {
-          const w1 = winList[i], w2 = winList[j];
-          if (w1.activeDesktop !== activeDesktop || w2.activeDesktop !== activeDesktop) continue;
-          if (opts.bspTilingOn) continue;
-    
-          const col = testOBBCollision(w1, w2);
-          if (!col) continue;
-          
-          const { normal, depth, contact } = col;
-          const slop = 0.5, percent = 0.6;
-          const penToCorrect = Math.max(0, depth - slop);
-          const sepX = normal.x * penToCorrect * percent, sepY = normal.y * penToCorrect * percent;
-    
-          if (w1.isDragging && !w2.isDragging) { w2.x -= sepX * 2; w2.y -= sepY * 2; }
-          else if (!w1.isDragging && w2.isDragging) { w1.x += sepX * 2; w1.y += sepY * 2; }
-          else if (!w1.isDragging && !w2.isDragging) { w1.x += sepX; w1.y += sepY; w2.x -= sepX; w2.y -= sepY; }
-    
-          const c1x = w1.x + w1.w / 2, c1y = w1.y + w1.h / 2;
-          const c2x = w2.x + w2.w / 2, c2y = w2.y + w2.h / 2;
-          const r1x = contact.x - c1x, r1y = contact.y - c1y;
-          const r2x = contact.x - c2x, r2y = contact.y - c2y;
-          const v1cx = w1.vx - (opts.rotationOn ? w1.angvel * r1y : 0), v1cy = w1.vy + (opts.rotationOn ? w1.angvel * r1x : 0);
-          const v2cx = w2.vx - (opts.rotationOn ? w2.angvel * r2y : 0), v2cy = w2.vy + (opts.rotationOn ? w2.angvel * r2x : 0);
-          const relVx = v1cx - v2cx, relVy = v1cy - v2cy;
-          const velAlongNormal = relVx * normal.x + relVy * normal.y;
-    
-          if (velAlongNormal < 0) {
-            const approachSpeed = -velAlongNormal;
-            const restitution = approachSpeed > 150 ? 0.25 : 0.0;
-            const invM1 = 1 / w1.mass, invM2 = 1 / w2.mass;
-            const I1 = (w1.mass * (w1.w * w1.w + w1.h * w1.h)) / 12, I2 = (w2.mass * (w2.w * w2.w + w2.h * w2.h)) / 12;
-            const invI1 = opts.rotationOn ? 1 / I1 : 0, invI2 = opts.rotationOn ? 1 / I2 : 0;
-            const r1CrossN = r1x * normal.y - r1y * normal.x, r2CrossN = r2x * normal.y - r2y * normal.x;
-            const invMassSum = invM1 + invM2 + (r1CrossN * r1CrossN) * invI1 + (r2CrossN * r2CrossN) * invI2;
-            const jImpulse = -(1 + restitution) * velAlongNormal / invMassSum;
-            const impulseX = jImpulse * normal.x, impulseY = jImpulse * normal.y;
-    
-            if (!w1.isDragging) {
-              w1.vx += impulseX * invM1; w1.vy += impulseY * invM1;
-              if (opts.rotationOn) w1.angvel += (r1x * impulseY - r1y * impulseX) * invI1;
-            }
-            if (!w2.isDragging) {
-              w2.vx -= impulseX * invM2; w2.vy -= impulseY * invM2;
-              if (opts.rotationOn) w2.angvel -= (r2x * impulseY - r2y * impulseX) * invI2;
-            }
-    
-            const tx = -normal.y, ty = normal.x;
-            const velAlongTangent = relVx * tx + relVy * ty;
-            const r1CrossT = r1x * ty - r1y * tx, r2CrossT = r2x * ty - r2y * tx;
-            const invMassSumTan = invM1 + invM2 + (r1CrossT * r1CrossT) * invI1 + (r2CrossT * r2CrossT) * invI2;
-            const friction = 0.25, maxFriction = Math.abs(jImpulse) * friction;
-            const jTangent = Math.max(-maxFriction, Math.min(maxFriction, -velAlongTangent / invMassSumTan));
-            const tanImpulseX = jTangent * tx, tanImpulseY = jTangent * ty;
-    
-            if (!w1.isDragging) {
-              w1.vx += tanImpulseX * invM1; w1.vy += tanImpulseY * invM1;
-              if (opts.rotationOn) w1.angvel += (r1x * tanImpulseY - r1y * tanImpulseX) * invI1;
-            }
-            if (!w2.isDragging) {
-              w2.vx -= tanImpulseX * invM2; w2.vy -= tanImpulseY * invM2;
-              if (opts.rotationOn) w2.angvel -= (r2x * tanImpulseY - r2y * tanImpulseX) * invI2;
-            }
-    
-            w1.angvel = Math.max(-6.0, Math.min(6.0, w1.angvel));
-            w2.angvel = Math.max(-6.0, Math.min(6.0, w2.angvel));
-    
-            if (approachSpeed > 150 && performance.now() - lastSoundTimeRef.current > 90) {
-              lastSoundTimeRef.current = performance.now();
-              playKnockSound(approachSpeed, opts.soundOn);
-              const f = Math.min(1.0, approachSpeed / 2000.0);
-              const mag = 12.0 * f * f;
-              if (mag > shakeMag) { shakeMag = mag; shakeT = 0; }
-            }
-            checkWindowCollisionDamage(w1, w2, approachSpeed, opts.breakableOn);
-          }
-          if (Math.abs(velAlongNormal) < 80) {
-            if (!w1.isDragging) { w1.angvel *= 0.85; if (Math.abs(w1.angvel) < 0.05) w1.angvel = 0; }
-            if (!w2.isDragging) { w2.angvel *= 0.85; if (Math.abs(w2.angvel) < 0.05) w2.angvel = 0; }
-          }
-        }
-      }
-    
-      // 2. BSP & PHYSICS MOVEMENT INTEGRATION
-      updateBspLayout(winList, activeDesktop, opts.bspTilingOn, boundsW, boundsH, dt);
-      const sortedWindows = sortedWindowsRef.current;
-      sortedWindows.length = 0;
-      for (let i = 0; i < winList.length; i++) sortedWindows.push(winList[i]);
-      sortedWindows.sort((a, b) => a.zIndex - b.zIndex);
-    
-      sortedWindows.forEach((win) => {
+      // =========================================================================
+      // STEP 1: INTEGRATE POSITIONS & VELOCITIES BEFORE SOLVING CONSTRAINTS
+      // =========================================================================
+      winList.forEach((win) => {
         if (win.activeDesktop !== activeDesktop) return;
         win.mass = opts.massMode === 'ram' ? 342.0 : Math.round(win.w * win.h * 0.0005 * 10) / 10;
-        
+
         if (win.isDragging) {
-                  // High-frequency exponential dampening (Smooths out mouse polling desync)
-                  const smoothFactor = 1 - Math.exp(-36 * dt);
-                  const lerpTargetX = win.x + (dragTargetX - win.x) * smoothFactor;
-                  const lerpTargetY = win.y + (dragTargetY - win.y) * smoothFactor;
-        
-                  win.vx = (lerpTargetX - win.x) / dt;
-                  win.vy = (lerpTargetY - win.y) / dt;
-        
-                  if (opts.rotationOn && !opts.bspTilingOn) {
-                    if (!pivotHave) {
-                      pivotX = dragCurX; pivotY = dragCurY; pivotVx = 0; pivotVy = 0; pivotAx = 0; pivotAy = 0; pivotHave = true;
-                    } else {
-                      const nvx = (dragCurX - pivotX) / dt, nvy = (dragCurY - pivotY) / dt;
-                      const kv = dt / (dt + 0.04);
-                      const svx = pivotVx + (nvx - pivotVx) * kv, svy = pivotVy + (nvy - pivotVy) * kv;
-                      const rax = (svx - pivotVx) / dt, ray = (svy - pivotVy) / dt;
-                      const ka = dt / (dt + 0.08);
-                      pivotAx += (rax - pivotAx) * ka; pivotAy += (ray - pivotAy) * ka;
-                      pivotAx = Math.max(-20000, Math.min(20000, pivotAx)); pivotAy = Math.max(-20000, Math.min(20000, pivotAy));
-                      pivotX = dragCurX; pivotY = dragCurY; pivotVx = svx; pivotVy = svy;
-        
-                      const c = Math.cos(win.angle), s = Math.sin(win.angle);
-                      const rx = -(c * win.grabLxCenter - s * win.grabLyCenter), ry = -(s * win.grabLxCenter + c * win.grabLyCenter);
-                      const gy = currentGravity, ex = -pivotAx, ey = gy - pivotAy;
-                      const inertia = (win.w * win.w + win.h * win.h) / 12.0 + (rx * rx + ry * ry);
-                      if (inertia > 1.0) { const alpha = (rx * ey - ry * ex) / inertia; win.angvel += alpha * dt; }
-                      win.angvel *= Math.exp(-1.2 * dt);
-                      win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
-                      win.angle += win.angvel * dt;
-                      win.x = (dragCurX + rx) - win.w / 2; win.y = (dragCurY + ry) - win.h / 2;
-                    }
-                  } else {
-                    // Apply smoothed positions
-                    win.x = lerpTargetX;
-                    win.y = lerpTargetY;
-                  }
-                } else {
+          const smoothFactor = 1 - Math.exp(-36 * dt);
+          const lerpTargetX = win.x + (dragTargetX - win.x) * smoothFactor;
+          const lerpTargetY = win.y + (dragTargetY - win.y) * smoothFactor;
+
+          win.vx = (lerpTargetX - win.x) / dt;
+          win.vy = (lerpTargetY - win.y) / dt;
+
+          if (opts.rotationOn && !opts.bspTilingOn) {
+            if (!pivotHave) {
+              pivotX = dragCurX; pivotY = dragCurY; pivotVx = 0; pivotVy = 0; pivotAx = 0; pivotAy = 0; pivotHave = true;
+            } else {
+              const nvx = (dragCurX - pivotX) / dt, nvy = (dragCurY - pivotY) / dt;
+              const kv = dt / (dt + 0.04);
+              const svx = pivotVx + (nvx - pivotVx) * kv, svy = pivotVy + (nvy - pivotVy) * kv;
+              const rax = (svx - pivotVx) / dt, ray = (svy - pivotVy) / dt;
+              const ka = dt / (dt + 0.08);
+              pivotAx += (rax - pivotAx) * ka; pivotAy += (ray - pivotAy) * ka;
+              pivotAx = Math.max(-20000, Math.min(20000, pivotAx)); pivotAy = Math.max(-20000, Math.min(20000, pivotAy));
+              pivotX = dragCurX; pivotY = dragCurY; pivotVx = svx; pivotVy = svy;
+
+              const c = Math.cos(win.angle), s = Math.sin(win.angle);
+              const rx = -(c * win.grabLxCenter - s * win.grabLyCenter), ry = -(s * win.grabLxCenter + c * win.grabLyCenter);
+              const gy = currentGravity, ex = -pivotAx, ey = gy - pivotAy;
+              const inertia = (win.w * win.w + win.h * win.h) / 12.0 + (rx * rx + ry * ry);
+              if (inertia > 1.0) { const alpha = (rx * ey - ry * ex) / inertia; win.angvel += alpha * dt; }
+              win.angvel *= Math.exp(-1.2 * dt);
+              win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
+              win.angle += win.angvel * dt;
+              win.x = (dragCurX + rx) - win.w / 2; win.y = (dragCurY + ry) - win.h / 2;
+            }
+          } else {
+            win.x = lerpTargetX;
+            win.y = lerpTargetY;
+          }
+        } else {
           if (!opts.bspTilingOn) {
             win.vy += currentGravity * dt;
             const damp = Math.pow(currentGravity > 0 ? 0.985 : 0.995, dt * 60);
             win.vx *= damp; win.vy *= damp;
             win.x += win.vx * dt; win.y += win.vy * dt;
-      
+
             if (opts.rotationOn) {
               win.angle += win.angvel * dt; win.angvel *= Math.exp(-0.35 * dt);
               win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
             } else { win.angle = 0; win.angvel = 0; }
-      
-            const cosA = Math.cos(win.angle), sinA = Math.sin(win.angle);
-            const extX = (win.w / 2) * Math.abs(cosA) + (win.h / 2) * Math.abs(sinA);
-            const extY = (win.w / 2) * Math.abs(sinA) + (win.h / 2) * Math.abs(cosA);
-            let cx = win.x + win.w / 2, cy = win.y + win.h / 2;
-            let hit = false, hitSpeed = 0;
-            const wallRestitution = currentGravity > 0 ? 0.3 : 0.8;
-      
-            if (cx - extX < 0) {
-              cx = extX; win.x = cx - win.w / 2;
-              if (win.vx < 0) { win.vx = Math.abs(win.vx) * wallRestitution; if (opts.rotationOn) win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8)); hit = true; hitSpeed = Math.abs(win.vx); }
-            }
-            if (cx + extX > boundsW) {
-              cx = boundsW - extX; win.x = cx - win.w / 2;
-              if (win.vx > 0) { win.vx = -Math.abs(win.vx) * wallRestitution; if (opts.rotationOn) win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel + (Math.random() - 0.5) * 0.8)); hit = true; hitSpeed = Math.abs(win.vx); }
-            }
-            if (cy - extY < 0) {
-              cy = extY; win.y = cy - win.h / 2;
-              if (win.vy < 0) { win.vy = Math.abs(win.vy) * wallRestitution; hit = true; hitSpeed = Math.abs(win.vy); }
-            }
-            if (cy + extY > boundsH) {
-              cy = boundsH - extY; win.y = cy - win.h / 2;
-              if (win.vy > 0) { win.vy = -Math.abs(win.vy) * wallRestitution; win.vx *= 0.85; hit = true; hitSpeed = Math.abs(win.vy); }
-              if (opts.rotationOn) {
-                let normAngle = win.angle % (Math.PI * 2);
-                if (normAngle > Math.PI) normAngle -= Math.PI * 2; if (normAngle < -Math.PI) normAngle += Math.PI * 2;
-                const targets = [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI];
-                let nearestTarget = 0, minDiff = Infinity;
-                for (const target of targets) {
-                  const diff = Math.abs(normAngle - target); if (diff < minDiff) { minDiff = diff; nearestTarget = target; }
+          }
+        }
+      });
+
+      // Update BSP Layout if enabled
+      updateBspLayout(winList, activeDesktop, opts.bspTilingOn, boundsW, boundsH, dt);
+
+      // =========================================================================
+      // STEP 2: MULTI-PASS CONSTRAINTS (WINDOW COLLISIONS + FLOOR & BOUNDARIES)
+      // =========================================================================
+      if (!opts.bspTilingOn) {
+        const NUM_ITERATIONS = 4;
+
+        for (let iter = 0; iter < NUM_ITERATIONS; iter++) {
+          // A. Window-to-Window Rigid Body Collisions
+          for (let i = 0; i < winList.length; i++) {
+            for (let j = i + 1; j < winList.length; j++) {
+              const w1 = winList[i], w2 = winList[j];
+              if (w1.activeDesktop !== activeDesktop || w2.activeDesktop !== activeDesktop) continue;
+
+              const col = testOBBCollision(w1, w2);
+              if (!col) continue;
+              
+              const { normal, depth, contact } = col;
+
+              // 100% Hard Separation (Zero Slop)
+              if (depth > 0) {
+                if (w1.isDragging && !w2.isDragging) {
+                  w2.x -= normal.x * depth;
+                  w2.y -= normal.y * depth;
+                } else if (!w1.isDragging && w2.isDragging) {
+                  w1.x += normal.x * depth;
+                  w1.y += normal.y * depth;
+                } else if (!w1.isDragging && !w2.isDragging) {
+                  const totalMass = w1.mass + w2.mass;
+                  const m1Ratio = w2.mass / totalMass;
+                  const m2Ratio = w1.mass / totalMass;
+
+                  w1.x += normal.x * depth * m1Ratio;
+                  w1.y += normal.y * depth * m1Ratio;
+                  w2.x -= normal.x * depth * m2Ratio;
+                  w2.y -= normal.y * depth * m2Ratio;
                 }
-                const angleDiff = nearestTarget - normAngle;
-                if (currentGravity > 0) win.angvel += 14.0 * Math.sin(angleDiff) * dt;
-                win.angvel *= Math.exp(-4.0 * dt);
-                if (Math.abs(angleDiff) < 0.15 && Math.abs(win.angvel) < 0.8 && Math.abs(win.vy) < 25) {
-                  win.angle = nearestTarget; win.angvel = 0; if (Math.abs(win.vy) < 15) win.vy = 0;
+              }
+
+              // Compute Impulse / Resting Velocity on Pass 0
+              if (iter === 0) {
+                const c1x = w1.x + w1.w / 2, c1y = w1.y + w1.h / 2;
+                const c2x = w2.x + w2.w / 2, c2y = w2.y + w2.h / 2;
+                const r1x = contact.x - c1x, r1y = contact.y - c1y;
+                const r2x = contact.x - c2x, r2y = contact.y - c2y;
+
+                const v1cx = w1.vx - (opts.rotationOn ? w1.angvel * r1y : 0);
+                const v1cy = w1.vy + (opts.rotationOn ? w1.angvel * r1x : 0);
+                const v2cx = w2.vx - (opts.rotationOn ? w2.angvel * r2y : 0);
+                const v2cy = w2.vy + (opts.rotationOn ? w2.angvel * r2x : 0);
+
+                const relVx = v1cx - v2cx;
+                const relVy = v1cy - v2cy;
+                const velAlongNormal = relVx * normal.x + relVy * normal.y;
+
+                if (velAlongNormal < 0) {
+                  const approachSpeed = -velAlongNormal;
+                  const totalMass = w1.mass + w2.mass;
+                  const m1Ratio = w2.mass / totalMass;
+                  const m2Ratio = w1.mass / totalMass;
+
+                  // RESTING CONTACT: Kill normal velocity if approach is slow (< 35 px/s) to prevent shaking
+                  if (approachSpeed < 35) {
+                    const normVelX = relVx * normal.x * normal.x;
+                    const normVelY = relVy * normal.y * normal.y;
+
+                    if (!w1.isDragging) {
+                      w1.vx -= normVelX * m1Ratio;
+                      w1.vy -= normVelY * m1Ratio;
+                      if (Math.abs(w1.vx) < 1) w1.vx = 0;
+                      if (Math.abs(w1.vy) < 1) w1.vy = 0;
+                    }
+                    if (!w2.isDragging) {
+                      w2.vx += normVelX * m2Ratio;
+                      w2.vy += normVelY * m2Ratio;
+                      if (Math.abs(w2.vx) < 1) w2.vx = 0;
+                      if (Math.abs(w2.vy) < 1) w2.vy = 0;
+                    }
+                  } else {
+                    // DYNAMIC IMPACT IMPULSE
+                    const restitution = approachSpeed > 150 ? 0.25 : 0.0;
+                    const invM1 = 1 / w1.mass, invM2 = 1 / w2.mass;
+                    const I1 = (w1.mass * (w1.w * w1.w + w1.h * w1.h)) / 12;
+                    const I2 = (w2.mass * (w2.w * w2.w + w2.h * w2.h)) / 12;
+                    const invI1 = opts.rotationOn ? 1 / I1 : 0;
+                    const invI2 = opts.rotationOn ? 1 / I2 : 0;
+
+                    const r1CrossN = r1x * normal.y - r1y * normal.x;
+                    const r2CrossN = r2x * normal.y - r2y * normal.x;
+                    const invMassSum = invM1 + invM2 + (r1CrossN * r1CrossN) * invI1 + (r2CrossN * r2CrossN) * invI2;
+
+                    const jImpulse = -(1 + restitution) * velAlongNormal / invMassSum;
+                    const impulseX = jImpulse * normal.x;
+                    const impulseY = jImpulse * normal.y;
+
+                    if (!w1.isDragging) {
+                      w1.vx += impulseX * invM1;
+                      w1.vy += impulseY * invM1;
+                      if (opts.rotationOn) w1.angvel += (r1x * impulseY - r1y * impulseX) * invI1;
+                    }
+                    if (!w2.isDragging) {
+                      w2.vx -= impulseX * invM2;
+                      w2.vy -= impulseY * invM2;
+                      if (opts.rotationOn) w2.angvel -= (r2x * impulseY - r2y * impulseX) * invI2;
+                    }
+
+                    if (approachSpeed > 120 && performance.now() - lastSoundTimeRef.current > 90) {
+                      lastSoundTimeRef.current = performance.now();
+                      playKnockSound(approachSpeed, opts.soundOn);
+                      const f = Math.min(1.0, approachSpeed / 2000.0);
+                      const mag = 12.0 * f * f;
+                      if (mag > shakeMag) { shakeMag = mag; shakeT = 0; }
+                    }
+                    checkWindowCollisionDamage(w1, w2, approachSpeed, opts.breakableOn);
+                  }
                 }
               }
             }
-            win.angvel = Math.max(-8.0, Math.min(8.0, win.angvel));
-      
-            if (hit && hitSpeed > 120) {
-              win.squashT = 0; win.squashAmount = Math.min(0.24, hitSpeed / 900.0); win.squashNx = 0; win.squashNy = -1;
-              const f = Math.min(1.0, hitSpeed / 2000.0); const mag = 12.0 * f * f;
-              if (mag > shakeMag) { shakeMag = mag; shakeT = 0; }
-              playKnockSound(hitSpeed, opts.soundOn);
-            }
           }
+
+          // B. Window vs Floor / Wall / Ceiling Boundaries
+          winList.forEach((win) => {
+            if (win.activeDesktop !== activeDesktop || win.isDragging) return;
+
+            const cosA = Math.cos(win.angle);
+            const sinA = Math.sin(win.angle);
+            const extX = (win.w / 2) * Math.abs(cosA) + (win.h / 2) * Math.abs(sinA);
+            const extY = (win.w / 2) * Math.abs(sinA) + (win.h / 2) * Math.abs(cosA);
+
+            let cx = win.x + win.w / 2;
+            let cy = win.y + win.h / 2;
+
+            let hit = false;
+            let hitSpeed = 0;
+            const wallRestitution = currentGravity > 0 ? 0.3 : 0.8;
+
+            if (cx - extX < 0) {
+              cx = extX; win.x = cx - win.w / 2;
+              if (win.vx < 0) { hitSpeed = Math.abs(win.vx); win.vx = hitSpeed * wallRestitution; hit = true; }
+            }
+            if (cx + extX > boundsW) {
+              cx = boundsW - extX; win.x = cx - win.w / 2;
+              if (win.vx > 0) { hitSpeed = Math.abs(win.vx); win.vx = -hitSpeed * wallRestitution; hit = true; }
+            }
+            if (cy - extY < 0) {
+              cy = extY; win.y = cy - win.h / 2;
+              if (win.vy < 0) { hitSpeed = Math.abs(win.vy); win.vy = hitSpeed * wallRestitution; hit = true; }
+            }
+            if (cy + extY > boundsH) {
+              cy = boundsH - extY; win.y = cy - win.h / 2;
+              if (win.vy > 0) {
+                hitSpeed = Math.abs(win.vy);
+                win.vy = -hitSpeed * wallRestitution;
+                win.vx *= 0.85;
+                if (Math.abs(win.vy) < 30) win.vy = 0;
+                hit = true;
+              }
+            }
+
+            // Trigger Knock Sound & Squash/Stretch Drop Animation on Floor Landing
+            if (hit && hitSpeed > 120 && iter === 0) {
+              win.squashT = 0;
+              win.squashAmount = Math.min(0.24, hitSpeed / 900.0);
+              win.squashNx = 0;
+              win.squashNy = -1;
+
+              const f = Math.min(1.0, hitSpeed / 2000.0);
+              const mag = 12.0 * f * f;
+              if (mag > shakeMag) { shakeMag = mag; shakeT = 0; }
+
+              if (performance.now() - lastSoundTimeRef.current > 90) {
+                lastSoundTimeRef.current = performance.now();
+                playKnockSound(hitSpeed, opts.soundOn);
+              }
+            }
+          });
         }
-    
-        // Wobble mesh translation delta
+      }
+
+      // =========================================================================
+      // STEP 3: RENDER FULLY SOLVED & POSITION-CLAMPED FRAME
+      // =========================================================================
+      const sortedWindows = sortedWindowsRef.current;
+      sortedWindows.length = 0;
+      for (let i = 0; i < winList.length; i++) sortedWindows.push(winList[i]);
+      sortedWindows.sort((a, b) => a.zIndex - b.zIndex);
+
+      sortedWindows.forEach((win) => {
+        if (win.activeDesktop !== activeDesktop) return;
+
         const moveDx = win.x - win.lastX, moveDy = win.y - win.lastY;
         if (opts.wobbleOn && (moveDx !== 0 || moveDy !== 0)) win.wobble.translate(moveDx, moveDy);
         win.lastX = win.x; win.lastY = win.y;
 
         if (opts.wobbleOn && !opts.bspTilingOn) win.wobble.step(dt);
-    
+
         let sx = 1.0, sy = 1.0;
         if (win.squashAmount > 0.001) {
           win.squashT += dt;
@@ -284,8 +339,8 @@ export const usePhysicsEngine = ({
             sx = 1.0 - a * ax + a * 0.45 * ay; sy = 1.0 - a * ay + a * 0.45 * ax;
           }
         }
-    
-        // 3. TELEMETRY
+
+        // Telemetry Update
         const isFocused = win.isDragging || focusedTitleRef.current === win.title;
         if (isFocused) {
           if (win.isDragging) focusedTitleRef.current = win.title;
@@ -300,14 +355,14 @@ export const usePhysicsEngine = ({
             }
           }
         }
-    
-        // 4. RENDERING
+
+        // Texture Drawing
         const texCanvas = getWindowTextureCanvas(win, windowTextureMapRef.current, isFocused);
         ctx.save();
         ctx.translate(win.x + win.w / 2, win.y + win.h / 2);
         if (opts.rotationOn && win.angle !== 0 && !opts.bspTilingOn) ctx.rotate(win.angle);
         ctx.translate(-win.w / 2, -win.h / 2);
-    
+
         if (opts.wobbleOn && win.isDragging && !opts.bspTilingOn) {
           const grid = WOBBLE_GRID; const gridStepU = win.w / (grid - 1), gridStepV = win.h / (grid - 1);
           ctx.save(); ctx.scale(sx, sy);
@@ -351,7 +406,6 @@ export const usePhysicsEngine = ({
             delete windowTextureMapRef.current[win.id]; winList.splice(i, 1); return;
           }
           if (localY <= 28) {
-            // Dragging is now allowed in BSP Tiling Mode!
             activeDragWin = win; win.isDragging = true;
             desktopRef.current.style.cursor = 'grabbing';
             win.grabLxCenter = localX - win.w / 2; win.grabLyCenter = localY - win.h / 2;
@@ -392,7 +446,6 @@ export const usePhysicsEngine = ({
       dragCurX = curLx; dragCurY = curLy;
       dragTargetX = curLx - activeDragWin.grabLx; dragTargetY = curLy - activeDragWin.grabLy;
 
-      // LIVE BSP TILE REORDERING WHEN DRAGGING OVER OTHER TILE SLOTS
       if (optsRef.current.bspTilingOn && desktopRef.current) {
         const winList = windowsRef.current;
         const desktopWindows = winList.filter((w) => w.activeDesktop === activeDesktop);
@@ -477,7 +530,6 @@ export const usePhysicsEngine = ({
       const now = performance.now() / 1000;
 
       if (optsRef.current.bspTilingOn) {
-        // Zero momentum in BSP mode so dropped tile glides smoothly into place
         win.vx = 0;
         win.vy = 0;
       } else {
