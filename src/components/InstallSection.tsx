@@ -37,7 +37,7 @@ export const InstallSection: React.FC = () => {
               </span>
             </h2>
             <p className="fwm-desc text-slate-300 text-base sm:text-lg max-w-xl mx-auto">
-              Choose your preferred installation method. Supported on Arch, Debian/Ubuntu, Fedora, and Void Linux.
+              Choose your preferred installation method. Supported on Arch, Debian/Ubuntu, Fedora, NixOS, and Void Linux.
             </p>
           </div>
 
