@@ -57,13 +57,16 @@ export const Hero: React.FC = () => {
             <span className="group-hover:translate-x-1 transition-transform">↓</span>
           </a>
 
-          <button
-            onClick={copyCommand}
-            className="group relative flex items-center space-x-3 px-6 py-3 bg-slate-900/90 border border-slate-700/80 hover:border-amber-400/80 text-slate-200 font-mono text-xs transition-all cursor-pointer shadow-lg rounded-none clip-hex-12"
-          >
-            <span className="text-amber-400">📋</span>
-            <span>{copied ? '✓ Copied Command!' : 'Copy Install Command'}</span>
-          </button>
+          {/* Copy Command Button with Clean 1px Chamfered Border */}
+          <div className="p-[1px] bg-slate-700/80 hover:bg-amber-400/80 transition-colors clip-hex-12 shadow-lg">
+            <button
+              onClick={copyCommand}
+              className="group relative flex items-center space-x-3 px-6 py-3 bg-slate-950/95 text-slate-200 font-mono text-xs transition-all cursor-pointer clip-hex-12"
+            >
+              <span className="text-amber-400">📋</span>
+              <span>{copied ? '✓ Copied Command!' : 'Copy Install Command'}</span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
