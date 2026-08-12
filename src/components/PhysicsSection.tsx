@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FwmWobble } from '../lib/physics/FwmWobble';
 import type { WindowBody } from '../types/physics';
+import type { SandboxActions } from '../types/terminal';
 
 import { PhysicsIntro } from './physics/PhysicsIntro';
 import { PhysicsTextSteps } from './physics/PhysicsTextSteps';
@@ -16,6 +17,7 @@ export const PhysicsSection: React.FC = () => {
   const progressBarRef = useRef<HTMLDivElement>(null);
   const textStep1Ref = useRef<HTMLDivElement>(null);
   const textStep2Ref = useRef<HTMLDivElement>(null);
+  const textStep3Ref = useRef<HTMLDivElement>(null);
   const instructionRef = useRef<HTMLDivElement>(null);
   const telemetryRef = useRef<HTMLSpanElement>(null);
 
@@ -32,17 +34,14 @@ export const PhysicsSection: React.FC = () => {
 
   const [gravityOn, setGravityOn] = useState(true);
   const [gravityType, setGravityType] = useState<'earth' | 'moon' | 'space'>('earth');
-  
   const [rotationOn, setRotationOn] = useState(false);
   const [wobbleOn, setWobbleOn] = useState(true);
-
   const [soundOn, setSoundOn] = useState(true);
   const [bspTilingOn, setBspTilingOn] = useState(false);
   const [breakableOn, setBreakableOn] = useState(false);
   const [massMode, setMassMode] = useState<'size' | 'ram'>('size');
   const [showModes, setShowModes] = useState(false);
 
-  // Sync options ref for the engine
   const optsRef = useRef({ gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn });
   useEffect(() => {
     optsRef.current = { gravityOn, gravityType, rotationOn, wobbleOn, soundOn, massMode, bspTilingOn, breakableOn };
@@ -71,7 +70,58 @@ export const PhysicsSection: React.FC = () => {
     });
   };
 
-  useScrollSequence({ sectionRef, desktopRef, textStep1Ref, textStep2Ref, instructionRef, progressBarRef });
+  // IPC Sandbox Action Callbacks
+  const sandboxActions: SandboxActions = {
+    setGravity: (val, type = 'earth') => {
+      setGravityOn(val !== 0);
+      setGravityType(type);
+    },
+    setMassMode: (mode) => setMassMode(mode),
+    setBspTiling: (val) => setBspTilingOn(val),
+    spawnWindow: () => spawnWindow(),
+    killWindow: (id) => {
+      const winList = windowsRef.current;
+      if (winList.length === 0) return;
+      let targetIdx = -1;
+      if (id !== undefined) {
+        targetIdx = winList.findIndex((w) => w.id === id);
+      } else {
+        targetIdx = winList.length - 1;
+      }
+      if (targetIdx !== -1) {
+        delete windowTextureMapRef.current[winList[targetIdx].id];
+        winList.splice(targetIdx, 1);
+      }
+    },
+    calmAll: () => {
+      windowsRef.current.forEach((w) => {
+        w.vx = 0;
+        w.vy = 0;
+        w.angvel = 0;
+      });
+    },
+    getState: () => ({
+      ok: true,
+      desktop: activeDesktop,
+      gravity: gravityOn ? (gravityType === 'earth' ? 981 : gravityType === 'moon' ? 160 : 0) : 0,
+      mode: bspTilingOn ? 'tiling' : 'physics',
+      focused: focusedTitleRef.current,
+      windows: windowsRef.current.length,
+    }),
+    getWindows: () =>
+      windowsRef.current.map((w) => ({
+        id: w.id,
+        title: w.title,
+        x: Math.round(w.x),
+        y: Math.round(w.y),
+        w: Math.round(w.w),
+        h: Math.round(w.h),
+        mass: w.mass,
+        isDragging: w.isDragging,
+      })),
+  };
+
+  useScrollSequence({ sectionRef, desktopRef, textStep1Ref, textStep2Ref, textStep3Ref, instructionRef, progressBarRef });
   usePhysicsEngine({ activeDesktop, desktopRef, canvasRef, shakeWrapperRef, telemetryRef, optsRef, windowsRef, windowTextureMapRef, sortedWindowsRef, focusedTitleRef, lastTelemetryTextRef, lastSoundTimeRef, lastTelemetryDataRef });
 
   return (
@@ -80,7 +130,12 @@ export const PhysicsSection: React.FC = () => {
       <section id="physics" ref={sectionRef} className="relative w-full h-screen">
         <div className="w-full h-screen flex items-center justify-center overflow-hidden relative">
           
-          <PhysicsTextSteps textStep1Ref={textStep1Ref} textStep2Ref={textStep2Ref} />
+          <PhysicsTextSteps 
+            textStep1Ref={textStep1Ref} 
+            textStep2Ref={textStep2Ref} 
+            textStep3Ref={textStep3Ref}
+            sandboxActions={sandboxActions}
+          />
 
           <div ref={desktopRef} className="relative w-[340px] h-[230px] bg-slate-900/95 border border-slate-800 rounded-none overflow-hidden z-20 will-change-transform select-none shadow-2xl">
             <div className="absolute top-0 left-0 right-0 h-1 bg-slate-950/80 z-50 overflow-hidden">
