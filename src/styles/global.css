@@ -105,3 +105,19 @@ body.is-preloading #navbar-container {
 body.is-preloading #navbar-logo-svg {
   opacity: 0 !important;
 }
+
+/* Only hide native cursor if the custom cursor component has successfully detected a mouse */
+body.custom-cursor-active,
+body.custom-cursor-active *,
+body.custom-cursor-active a,
+body.custom-cursor-active button,
+body.custom-cursor-active .cursor-pointer {
+  cursor: none !important;
+}
+
+/* Allow native text I-beam cursor inside inputs/terminals */
+body.custom-cursor-active input,
+body.custom-cursor-active textarea,
+body.custom-cursor-active [contenteditable="true"] {
+  cursor: text !important;
+}

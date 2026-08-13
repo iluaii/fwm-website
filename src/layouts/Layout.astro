@@ -2,6 +2,7 @@
 import { ClientRouter } from 'astro:transitions';
 import { Navbar } from '../components/Navbar';
 import { SmoothScroll } from '../components/SmoothScroll';
+import { CustomCursor } from '../components/cursor/CustomCursor';
 import '../styles/global.css';
 
 interface Props {
@@ -253,6 +254,7 @@ const {
     )}
 
     <SmoothScroll client:only="react" />
+    <CustomCursor client:only="react" />
     <Navbar client:load />
     <slot />
   </body>
