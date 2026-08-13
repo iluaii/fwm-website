@@ -3,6 +3,7 @@ import { ClientRouter } from 'astro:transitions';
 import { Navbar } from '../components/Navbar';
 import { SmoothScroll } from '../components/SmoothScroll';
 import { CustomCursor } from '../components/cursor/CustomCursor';
+import { Footer } from '../components/Footer';
 import '../styles/global.css';
 
 interface Props {
@@ -51,7 +52,8 @@ const {
     </noscript>
   </head>
   
-  <body class={`bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden ${showPreloader ? 'is-preloading' : ''}`}>
+  <!-- Added min-h-screen flex flex-col to force footer to the bottom -->
+  <body class={`bg-slate-950 text-slate-100 antialiased selection:bg-amber-500 selection:text-slate-950 overflow-x-hidden min-h-screen flex flex-col ${showPreloader ? 'is-preloading' : ''}`}>
     
     {showPreloader && (
       <>
@@ -81,7 +83,6 @@ const {
               </div>
               <span id="app-preloader-percent" class="font-mono text-xs text-amber-400 font-bold tracking-wider min-w-[38px] text-right">0%</span>
             </div>
-            {/* LIVE LOADING LOGS */}
             <div id="app-preloader-log" class="mt-3 font-mono text-[9px] text-slate-500 uppercase tracking-widest h-4">
               [sys] Initializing session...
             </div>
@@ -92,7 +93,6 @@ const {
           import gsap from 'gsap';
 
           const runPreloaderAnimation = () => {
-            // Bypass if already loaded in this session
             if (sessionStorage.getItem('fwm_preloaded') === 'true') {
               document.body.classList.remove('is-preloading');
               const overlay = document.getElementById('app-preloader-overlay');
@@ -156,11 +156,9 @@ const {
               const targetSvg = document.getElementById('navbar-logo-svg');
               const overlay = document.getElementById('app-preloader-overlay');
 
-              // 1. Fade out UI components
               gsap.to('#app-preloader-progress-container', { opacity: 0, y: 10, duration: 0.3 });
               if (overlay) gsap.to(overlay, { opacity: 0, duration: 0.6, onComplete: () => overlay.style.display = 'none' });
 
-              // 2. Lock Opacity manually to prevent flashing BEFORE removing the CSS lock
               if (navContainer) {
                 navContainer.style.opacity = '0';
                 navContainer.style.visibility = 'visible';
@@ -169,19 +167,15 @@ const {
                 targetSvg.style.opacity = '0';
               }
 
-              // Remove Global CSS lock
               document.body.classList.remove('is-preloading');
 
-              // 3. One frame delay to guarantee layout is painted before calculating sizes
               requestAnimationFrame(() => {
                 if (sourceSvg && targetSlot) {
                   gsap.set(sourceSvg, { transformOrigin: 'center center' });
                   
-                  // Use the target layout SLOT directly for perfect math
                   const sourceRect = sourceSvg.getBoundingClientRect();
                   const targetRect = targetSlot.getBoundingClientRect();
 
-                  // Match aspect ratio exactly to the slot
                   const svgAR = 248 / 140;
                   const slotAR = targetRect.width / targetRect.height;
                   const finalWidth = slotAR > svgAR ? targetRect.height * svgAR : targetRect.width;
@@ -190,10 +184,8 @@ const {
                   const deltaX = (targetRect.left + targetRect.width / 2) - (sourceRect.left + sourceRect.width / 2);
                   const deltaY = (targetRect.top + targetRect.height / 2) - (sourceRect.top + sourceRect.height / 2);
 
-                  // Reveal navbar wrapper
                   if (navContainer) gsap.to(navContainer, { opacity: 1, duration: 0.4, delay: 0.1 });
 
-                  // Smooth Swoop Animation (Removed Elastic, Added smooth Expo)
                   gsap.to(sourceSvg, {
                     x: deltaX,
                     y: deltaY,
@@ -201,8 +193,6 @@ const {
                     duration: 1.0,
                     ease: 'expo.inOut',
                     onComplete: () => {
-                      // Seamless Handover! 
-                      // ⚠️ Note: We set opacity directly instead of clearProps: 'all' to protect your clip-path!
                       if (targetSvg) gsap.set(targetSvg, { opacity: 1 });
                       if (navContainer) gsap.set(navContainer, { clearProps: 'visibility' }); 
                       
@@ -253,9 +243,17 @@ const {
       </>
     )}
 
+    <!-- Navigation & Smooth Scroll -->
     <SmoothScroll client:only="react" />
     <CustomCursor client:only="react" />
     <Navbar client:load />
-    <slot />
+
+    <!-- Main Page Content Slot (flex-1 expands to fill space) -->
+    <div class="flex-1 w-full">
+      <slot />
+    </div>
+
+    <!-- Footer placed AFTER main content -->
+    <Footer />
   </body>
 </html>
